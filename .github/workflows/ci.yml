@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "./.github/actions/setup-rust-env"
+      - run: cargo clippy --all-targets --all-features
+        env:
+          RUSTFLAGS: "-Dwarnings"
+
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "./.github/actions/setup-rust-env"
+      - run: cargo fmt --check
+
+  tomlfmt:
+    runs-on: ubuntu-latest
+    env:
+      TAPLO_VERSION: 0.9.3
+    steps:
+      - uses: actions/checkout@v4
+      - run: >
+          curl -fsSL "https://github.com/tamasfe/taplo/releases/download/${TAPLO_VERSION}/taplo-full-linux-x86_64.gz"
+          | gzip -d -
+          | install -m 755 /dev/stdin /usr/local/bin/taplo
+      - run: taplo format --check
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "./.github/actions/setup-rust-env"
+      - uses: taiki-e/install-action@v2.47.0
+        with:
+          tool: cargo-nextest@0.9.87
+      - run: cargo nextest run --workspace
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: "./.github/actions/setup-rust-env"
+      - run: cargo build --release
+
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: uvx zizmor .github/workflows --min-severity=medium --min-confidence=low
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

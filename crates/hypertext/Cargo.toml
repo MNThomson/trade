@@ -1,0 +1,16 @@
+[package]
+name = "hypertext"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+axum.workspace = true
+http = "1.1"
+hypertext = { version = "0.5.2", features = ["axum"] }
+
+[dev-dependencies]
+pretty_assertions.workspace = true

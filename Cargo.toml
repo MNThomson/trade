@@ -1,0 +1,33 @@
+cargo-features = ["codegen-backend", "profile-rustflags"]
+
+[workspace]
+default-members = ["trade"]
+exclude = ["crates/android"]
+members = ["crates/*", "trade"]
+resolver = "2"
+
+[workspace.package]
+authors = ["MNThomson"]
+edition = "2024"
+license = "AGPLv3"
+repository = "https://github.com/MNThomson/trade"
+version = "0.0.0"
+
+[workspace.dependencies]
+axum = { version = "0.7" }
+axum-extra = { version = "0.9", features = ["cookie"] }
+pretty_assertions = "1.4.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1.0.33" }
+tokio = { version = "1.41", features = ["full"] }
+tower-http = { version = "0.6", features = ["catch-panic", "trace"] }
+tracing = { version = "0.1", features = ["attributes"] }
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+
+[profile.dev-fast]
+codegen-backend = "cranelift"
+inherits = "dev"
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]

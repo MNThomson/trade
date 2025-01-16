@@ -1,0 +1,23 @@
+[package]
+name = "telemetry"
+
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+version.workspace = true
+
+[dependencies]
+axum.workspace = true
+gethostname = "0.4"
+http = "1.1"
+rustc_version = "0.4"
+tower-http.workspace = true
+
+opentelemetry = { version = "0.21", features = ["metrics"] }
+opentelemetry-otlp = { version = "0.14", features = ["metrics", "tls-roots", "tonic"] }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+tonic = "0.9"
+tracing.workspace = true
+tracing-opentelemetry = { version = "0.22" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

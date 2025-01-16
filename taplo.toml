@@ -1,0 +1,13 @@
+[formatting]
+align_comments = false
+column_width = 120
+reorder_arrays = true
+reorder_inline_tables = true
+reorder_keys = true
+
+[[rule]]
+include = [".cargo/config.toml"]
+keys = ["alias"]
+
+[rule.formatting]
+reorder_arrays = false
