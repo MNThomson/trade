@@ -16,9 +16,10 @@ CREATE TABLE users (
     --created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
 
-CREATE TABLE user_sessions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+INSERT INTO users (user_name, password) VALUES ("Max", "Pass");
+
+CREATE TABLE stocks (
+    stock_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_name TEXT NOT NULL
+    --created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) STRICT;

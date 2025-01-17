@@ -1,7 +1,8 @@
 use axum::{http::StatusCode, response::IntoResponse};
-use db::DB;
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
+
+use crate::DB;
 
 #[derive(Clone)]
 pub struct AppState {

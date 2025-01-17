@@ -8,19 +8,26 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use db::DB;
-use frontend::home;
 use hypertext::*;
-use telemetry::{otel_tracing, tracing_init};
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{error, info};
 
-use crate::{types::AppState, user::AuthUser};
+use crate::{
+    db::DB,
+    frontend::home,
+    telemetry::{otel_tracing, tracing_init},
+    types::AppState,
+    user::AuthUser,
+};
 
 mod admin;
+
+mod db;
 mod frontend;
+mod hypertxt;
 mod market;
 mod order;
+mod telemetry;
 mod types;
 mod user;
 

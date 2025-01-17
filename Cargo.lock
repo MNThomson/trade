@@ -451,14 +451,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "db"
-version = "0.0.0"
-dependencies = [
- "rusqlite",
- "sqlx",
-]
-
-[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1005,16 +997,6 @@ dependencies = [
  "pin-project-lite",
  "tokio",
  "tower-service",
-]
-
-[[package]]
-name = "hypertext"
-version = "0.0.0"
-dependencies = [
- "axum 0.7.9",
- "http 1.2.0",
- "hypertext 0.5.2",
- "pretty_assertions",
 ]
 
 [[package]]
@@ -2480,24 +2462,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "telemetry"
-version = "0.0.0"
-dependencies = [
- "axum 0.7.9",
- "gethostname",
- "http 1.2.0",
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry_sdk",
- "rustc_version",
- "tonic",
- "tower-http",
- "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "tempfile"
 version = "3.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2889,16 +2853,25 @@ dependencies = [
  "axum 0.7.9",
  "axum-extra",
  "axum-macros",
- "db",
- "hypertext 0.0.0",
+ "gethostname",
+ "http 1.2.0",
+ "hypertext",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry_sdk",
  "pretty_assertions",
+ "rusqlite",
+ "rustc_version",
  "serde",
  "serde_json",
- "telemetry",
+ "sqlx",
  "tokio",
+ "tonic",
  "tower-http",
  "tower-livereload",
  "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
 ]
 
 [[package]]

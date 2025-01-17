@@ -2,8 +2,7 @@ cargo-features = ["codegen-backend", "profile-rustflags"]
 
 [workspace]
 default-members = ["trade"]
-exclude = ["crates/android"]
-members = ["crates/*", "trade"]
+members = ["trade"]
 resolver = "2"
 
 [workspace.package]

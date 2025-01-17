@@ -14,7 +14,7 @@ pub struct DB {
     pool: DbPool,
 }
 
-pub const INIT_SQL: &str = include_str!("../sql/init.sql");
+pub const INIT_SQL: &str = include_str!("./init.sql");
 
 const PATH: &str = "data.db";
 
@@ -50,4 +50,37 @@ impl DB {
             .unwrap_or((0,));
         if row.0 == 1 { Ok(()) } else { Err(()) }
     }
+
+    #[tracing::instrument(skip(self, password))]
+    pub async fn create_user(&self, user_name: String, password: String) -> Result<(), ()> {
+        let _res = sqlx::query_as!(
+            User,
+            "INSERT INTO users (user_name, password) VALUES (?, ?)",
+            user_name,
+            password
+        )
+        .execute(&self.pool)
+        .await
+        .unwrap();
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_user(&self, user_name: String) -> Result<Option<()>, ()> {
+        let row = sqlx::query_as!(User, "SELECT * FROM users WHERE user_name = ?", user_name)
+            .fetch_one(&self.pool)
+            .await
+            .unwrap();
+
+        println!("ASDSAD {:?}", row);
+        Ok(None)
+    }
+}
+
+#[derive(Debug)]
+struct User {
+    user_id: i64,
+    user_name: String,
+    password: String,
 }

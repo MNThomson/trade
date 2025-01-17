@@ -1,7 +1,4 @@
-pub use hypertext::{
-    Attribute, GlobalAttributes, Raw, RenderIterator, Renderable, Rendered, VoidElement,
-    html_elements, rsx, rsx_move, rsx_static,
-};
+use hypertext::{Attribute, GlobalAttributes};
 
 pub trait HtmxAttributes: GlobalAttributes {
     #![allow(non_upper_case_globals)]
@@ -13,9 +10,8 @@ impl<T: GlobalAttributes> HtmxAttributes for T {}
 
 #[cfg(test)]
 pub mod tests {
+    use hypertext::rsx;
     use pretty_assertions::assert_eq;
-
-    use super::*;
 
     #[test]
     fn test_rsx_macro_with_htmx_attributes() {

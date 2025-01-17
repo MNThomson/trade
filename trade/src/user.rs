@@ -57,6 +57,7 @@ pub async fn login(
     State(_state): State<AppState>,
     Json(_payload): Json<LoginRequest>,
 ) -> ApiResponse {
+    let u = _state.db.get_user(_payload.user_name).await;
     ApiResponse::Token("EySAuaASioASDh...".to_string())
 }
 

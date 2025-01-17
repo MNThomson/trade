@@ -8,19 +8,29 @@ repository.workspace = true
 version.workspace = true
 
 [dependencies]
-db = { path = "../crates/db/" }
-hypertext = { path = "../crates/hypertext/" }
-telemetry = { path = "../crates/telemetry/" }
-
 axum.workspace = true
 axum-extra.workspace = true
 axum-macros.workspace = true
+gethostname = "0.4"
+http = "1.1"
+hypertext = { version = "0.5.2", features = ["axum"] }
+opentelemetry = { version = "0.21", features = ["metrics"] }
+opentelemetry-otlp = { version = "0.14", features = ["metrics", "tls-roots", "tonic"] }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+rustc_version = "0.4"
 serde.workspace = true
 serde_json.workspace = true
+sqlx = { version = "0.8", features = ["chrono", "macros", "runtime-tokio", "sqlite"] }
 tokio.workspace = true
+tonic = "0.9"
 tower-http.workspace = true
 tower-livereload.version = "0.9.5"
 tracing.workspace = true
+tracing-opentelemetry = { version = "0.22" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
 pretty_assertions.workspace = true
+
+[build-dependencies]
+rusqlite.version = "0.32.1"
