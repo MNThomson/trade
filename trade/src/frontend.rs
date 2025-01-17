@@ -8,7 +8,7 @@ pub fn home() -> impl Renderable {
                 <meta charset="utf-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <meta name="darkreader-lock">
-                //<link rel="icon" href="/static/img/favicon.svg">
+                // TODO: <link rel="icon" href="/static/img/favicon.svg">
                 <title>Trade</title>
                 <script src="https://cdn.tailwindcss.com/3.4.15"></script>
             </head>

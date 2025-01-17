@@ -1,13 +1,14 @@
 use axum::{
     async_trait,
-    extract::{FromRef, FromRequestParts},
+    extract::{FromRef, FromRequestParts, Json, State},
     http::request::Parts,
     response::Redirect,
 };
 use axum_extra::extract::CookieJar;
+use serde::Deserialize;
 use tracing::info_span;
 
-use crate::AppState;
+use crate::{AppState, types::ApiResponse};
 
 pub const AUTH_COOKIE: &str = "authorization";
 
@@ -43,4 +44,33 @@ where
             session_token: auth_token,
         }))
     }
+}
+
+#[derive(Deserialize)]
+pub struct LoginRequest {
+    user_name: String,
+    password: String,
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn login(
+    State(_state): State<AppState>,
+    Json(_payload): Json<LoginRequest>,
+) -> ApiResponse {
+    ApiResponse::Token("EySAuaASioASDh...".to_string())
+}
+
+#[derive(Deserialize)]
+pub struct RegisterRequest {
+    user_name: String,
+    password: String,
+    name: String,
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn register(
+    State(_state): State<AppState>,
+    Json(_payload): Json<RegisterRequest>,
+) -> ApiResponse {
+    ApiResponse::NoneCreated
 }

@@ -6,7 +6,7 @@ use axum::{
     extract::State,
     http::{Response, StatusCode},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
 };
 use db::DB;
 use frontend::home;
@@ -15,15 +15,14 @@ use telemetry::{otel_tracing, tracing_init};
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{error, info};
 
-use crate::auth::AuthUser;
+use crate::{types::AppState, user::AuthUser};
 
-mod auth;
+mod admin;
 mod frontend;
-
-#[derive(Clone)]
-struct AppState {
-    db: DB,
-}
+mod market;
+mod order;
+mod types;
+mod user;
 
 #[tokio::main]
 async fn main() {
@@ -34,7 +33,40 @@ async fn main() {
     };
 
     let app = Router::new()
+        // Frontend
         .route("/", get(home().render()))
+        // User
+        .route("/authentication/login", post(user::login))
+        .route("/authentication/register", post(user::register))
+        // Market
+        .route("/transaction/getStockPrices", get(market::get_stock_prices))
+        .route(
+            "/transaction/getStockPortfolio",
+            get(market::get_stock_portfolio),
+        )
+        .route(
+            "/transaction/getWalletBalance",
+            get(market::get_wallet_balance),
+        )
+        .route(
+            "/transaction/getWalletTransactions",
+            get(market::get_wallet_transactions),
+        )
+        .route(
+            "/transaction/getStockTransactions",
+            get(market::get_stock_transactions),
+        )
+        // Order
+        .route("/engine/placeStockOrder", post(order::place_stock_order))
+        .route(
+            "/engine/cancelStockTransaction",
+            post(order::cancel_stock_transaction),
+        )
+        // Admin
+        .route("/transaction/addMoney", post(admin::add_money_to_wallet))
+        .route("/setup/addStockToUser", post(admin::add_stock_to_user))
+        .route("/setup/createStock", post(admin::create_stock))
+        // Misc
         .route("/protected", get(protected))
         .layer(otel_tracing())
         .route("/health", get(healthcheck))

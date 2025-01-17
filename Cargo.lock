@@ -238,6 +238,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "604fde5e028fea851ce1d8570bbdc034bec850d157f7569d10f347d06808c05c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.96",
+]
+
+[[package]]
 name = "backtrace"
 version = "0.3.74"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2877,9 +2888,11 @@ version = "0.0.0"
 dependencies = [
  "axum 0.7.9",
  "axum-extra",
+ "axum-macros",
  "db",
  "hypertext 0.0.0",
  "pretty_assertions",
+ "serde",
  "serde_json",
  "telemetry",
  "tokio",

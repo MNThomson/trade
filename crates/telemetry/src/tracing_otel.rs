@@ -9,18 +9,21 @@ use opentelemetry_sdk::{
 };
 use rustc_version::version;
 use tonic::metadata::MetadataMap;
+use tracing::warn;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const QUEUE_SIZE: usize = 65_536;
 
 pub fn tracing_init(service_name: &str, service_version: &str) {
-    #[cfg(not(debug_assertions))]
-    env::var("HONEYCOMB_APIKEY").expect("HONEYCOMB_APIKEY not set");
+    let mut exporter = opentelemetry_otlp::new_exporter().tonic();
 
-    let apikey = env::var("HONEYCOMB_APIKEY").unwrap_or("".to_string());
-
-    let mut headers = MetadataMap::new();
-    headers.insert("x-honeycomb-team", apikey.parse().unwrap());
+    if let Ok(apikey) = env::var("HONEYCOMB_APIKEY") {
+        let mut headers = MetadataMap::new();
+        headers.insert("x-honeycomb-team", apikey.parse().unwrap());
+        exporter = exporter
+            .with_endpoint("https://api.honeycomb.io:443")
+            .with_metadata(headers);
+    }
 
     tracing_subscriber::registry()
         .with(
@@ -38,12 +41,7 @@ pub fn tracing_init(service_name: &str, service_version: &str) {
             tracing_opentelemetry::layer().with_tracer(
                 opentelemetry_otlp::new_pipeline()
                     .tracing()
-                    .with_exporter(
-                        opentelemetry_otlp::new_exporter()
-                            .tonic()
-                            .with_endpoint("https://api.honeycomb.io:443")
-                            .with_metadata(headers),
-                    )
+                    .with_exporter(exporter)
                     .with_batch_config(
                         BatchConfig::default()
                             .with_max_queue_size(QUEUE_SIZE)
@@ -88,4 +86,11 @@ pub fn tracing_init(service_name: &str, service_version: &str) {
             ),
         )
         .init();
+
+    if env::var("HONEYCOMB_APIKEY")
+        .unwrap_or(String::from(""))
+        .is_empty()
+    {
+        warn!("HONEYCOMB_APIKEY not set. Exporting to localhost");
+    }
 }
