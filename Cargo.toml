@@ -1,27 +1,41 @@
 cargo-features = ["codegen-backend", "profile-rustflags"]
 
-[workspace]
-default-members = ["trade"]
-members = ["trade"]
-resolver = "2"
+[package]
+name = "trade"
 
-[workspace.package]
 authors = ["MNThomson"]
 edition = "2024"
 license = "AGPLv3"
 repository = "https://github.com/MNThomson/trade"
 version = "0.0.0"
 
-[workspace.dependencies]
+[dependencies]
 axum = { version = "0.7" }
 axum-extra = { version = "0.9", features = ["cookie"] }
 axum-macros = { version = "0.5" }
-pretty_assertions = "1.4.1"
+gethostname = "0.4"
+http = "1.1"
+hypertext = { version = "0.5.2", features = ["axum"] }
+opentelemetry = { version = "0.21", features = ["metrics"] }
+opentelemetry-otlp = { version = "0.14", features = ["metrics", "tls-roots", "tonic"] }
+opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
+rustc_version = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0.33" }
+sqlx = { version = "0.8", features = ["chrono", "macros", "runtime-tokio", "sqlite"] }
 tokio = { version = "1.41", features = ["full"] }
+tonic = "0.9"
 tower-http = { version = "0.6", features = ["catch-panic", "trace"] }
+tower-livereload.version = "0.9.5"
 tracing = { version = "0.1", features = ["attributes"] }
+tracing-opentelemetry = { version = "0.22" }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
+
+[build-dependencies]
+rusqlite.version = "0.32.1"
 
 [profile.release]
 codegen-units = 1

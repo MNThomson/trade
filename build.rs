@@ -18,9 +18,7 @@ fn main() {
 
     // Setup DB to sqlx
     {
-        let db_path = Path::new("../target/build.db")
-            .to_string_lossy()
-            .to_string();
+        let db_path = Path::new("./target/build.db").to_string_lossy().to_string();
         let _ = fs::remove_file(&db_path);
 
         let conn = Connection::open(&db_path).expect("Failed to open database");
