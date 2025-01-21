@@ -1,6 +1,12 @@
-use axum::{http::StatusCode, response::IntoResponse};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
+use chrono::{DateTime, Utc};
+use fake::{Dummy, faker::company::en::CompanyName};
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
+use ulid::Ulid;
 
 use crate::DB;
 
@@ -9,53 +15,60 @@ pub struct AppState {
     pub db: DB,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct StockPrice {
-    pub stock_id: String,
+    pub stock_id: Ulid,
+    #[dummy(faker = "CompanyName()")]
     pub stock_name: String,
+    #[dummy(faker = "1..200")]
     pub current_price: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct StockPortfolio {
-    pub stock_id: String,
+    pub stock_id: Ulid,
+    #[dummy(faker = "CompanyName()")]
     pub stock_name: String,
+    #[dummy(faker = "1..1000")]
     pub quantity_owned: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct WalletTransaction {
-    pub wallet_tx_id: String,
-    pub stock_tx_id: String,
+    pub wallet_tx_id: Ulid,
+    pub stock_tx_id: Ulid,
     pub is_debit: bool,
+    #[dummy(faker = "1..10000")]
     pub amount: usize,
-    pub time_stamp: String, //Chrono?
+    pub time_stamp: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Dummy)]
 pub enum OrderStatus {
     PENDING,
     COMPLETED,
     CANCELLED,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Dummy)]
 pub enum OrderType {
     MARKET,
     LIMIT,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct StockTransaction {
-    pub stock_tx_id: String,
-    pub stock_id: String,
-    pub wallet_tx_id: String,
+    pub stock_tx_id: Ulid,
+    pub stock_id: Ulid,
+    pub wallet_tx_id: Ulid,
     pub order_status: OrderStatus,
     pub is_buy: bool,
     pub order_type: OrderType,
+    #[dummy(faker = "1..200")]
     pub stock_price: usize,
+    #[dummy(faker = "1..200")]
     pub quantity: usize,
-    pub time_stamp: String, //Chrono??
+    pub time_stamp: DateTime<Utc>,
 }
 
 #[derive(Debug)]
@@ -92,7 +105,7 @@ fn success<T: Serialize>(input: &T) -> String {
 
 impl IntoResponse for ApiResponse {
     #[tracing::instrument]
-    fn into_response(self) -> axum::response::Response {
+    fn into_response(self) -> Response {
         match self {
             ApiResponse::None => (StatusCode::OK, success(&Some(()))).into_response(),
             ApiResponse::NoneCreated => (StatusCode::CREATED, success(&Some(()))).into_response(),
