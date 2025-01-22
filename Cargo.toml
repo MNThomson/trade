@@ -10,14 +10,16 @@ repository = "https://github.com/MNThomson/trade"
 version = "0.0.0"
 
 [dependencies]
-axum = { version = "0.7" }
-axum-extra = { version = "0.9", features = ["cookie"] }
+axum = { version = "0.7", features = ["macros"] }
+axum-extra = { version = "0.9", features = ["typed-header"] }
 axum-macros = { version = "0.5" }
 chrono = { version = "0.4.39", features = ["serde"] }
 fake = { version = "3.1", features = ["chrono", "derive", "ulid"] }
 gethostname = "0.4"
+headers = "0.4.0"
 http = "1.1"
 hypertext = { version = "0.5.2", features = ["axum"] }
+jsonwebtoken = "9.3.0"
 opentelemetry = { version = "0.21", features = ["metrics"] }
 opentelemetry-otlp = { version = "0.14", features = ["metrics", "tls-roots", "tonic"] }
 opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }

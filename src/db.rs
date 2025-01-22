@@ -1,12 +1,9 @@
-#![allow(async_fn_in_trait)]
-
 #[cfg(debug_assertions)]
 use std::fs::remove_file;
 use std::{fs::File, time::Duration};
 
-use sqlx::{Sqlite, SqlitePool, sqlite::SqlitePoolOptions};
+use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 
-pub type DbType = Sqlite;
 pub type DbPool = SqlitePool;
 
 #[derive(Clone)]
@@ -16,7 +13,11 @@ pub struct DB {
 
 pub const INIT_SQL: &str = include_str!("./init.sql");
 
+#[cfg(not(debug_assertions))]
 const PATH: &str = "data.db";
+
+#[cfg(debug_assertions)]
+const PATH: &str = "target/data.db";
 
 impl DB {
     pub async fn init() -> Result<Self, ()> {

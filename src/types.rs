@@ -81,7 +81,7 @@ pub enum ApiResponse {
     /// No response body with HTTP 201
     NoneCreated,
     /// Custom error message
-    Error(String),
+    Error(StatusCode, &'static str),
     /// JWT token
     Token(String),
     /// List of stock prices
@@ -112,8 +112,8 @@ impl IntoResponse for ApiResponse {
         match self {
             ApiResponse::None => (StatusCode::OK, success(&Some(()))).into_response(),
             ApiResponse::NoneCreated => (StatusCode::CREATED, success(&Some(()))).into_response(),
-            ApiResponse::Error(e) => (
-                StatusCode::BAD_REQUEST,
+            ApiResponse::Error(s, e) => (
+                s,
                 json!({ "success": false, "data": {"error": e} }).to_string(),
             )
                 .into_response(),
