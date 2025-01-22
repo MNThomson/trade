@@ -21,7 +21,6 @@ use crate::{
 };
 
 mod admin;
-
 mod db;
 mod frontend;
 mod hypertxt;

@@ -44,16 +44,19 @@ pub struct WalletTransaction {
 }
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OrderStatus {
-    PENDING,
-    COMPLETED,
-    CANCELLED,
+    Cancelled = -1,
+    Completed = 0,
+    Pending = 1,
+    InProgress = 2,
 }
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum OrderType {
-    MARKET,
-    LIMIT,
+    Market,
+    Limit,
 }
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
