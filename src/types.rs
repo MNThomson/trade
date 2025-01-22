@@ -80,8 +80,6 @@ pub enum ApiResponse {
     None,
     /// No response body with HTTP 201
     NoneCreated,
-    /// Custom error message
-    Error(StatusCode, &'static str),
     /// JWT token
     Token(String),
     /// List of stock prices
@@ -107,29 +105,58 @@ fn success<T: Serialize>(input: &T) -> String {
 }
 
 impl IntoResponse for ApiResponse {
-    #[tracing::instrument]
+    #[tracing::instrument(fields(response_type = "ApiResponse"))]
     fn into_response(self) -> Response {
         match self {
-            ApiResponse::None => (StatusCode::OK, success(&Some(()))).into_response(),
-            ApiResponse::NoneCreated => (StatusCode::CREATED, success(&Some(()))).into_response(),
-            ApiResponse::Error(s, e) => (
-                s,
-                json!({ "success": false, "data": {"error": e} }).to_string(),
-            )
-                .into_response(),
-            ApiResponse::Token(t) => {
-                (StatusCode::OK, success(&json!({"token": t}))).into_response()
-            }
-            ApiResponse::StockPriceVec(s) => (StatusCode::OK, success(&s)).into_response(),
-            ApiResponse::StockPortfolioVec(s) => (StatusCode::OK, success(&s)).into_response(),
-            ApiResponse::Balance(b) => {
-                (StatusCode::OK, success(&json!({"balance": b}))).into_response()
-            }
-            ApiResponse::WalletVec(w) => (StatusCode::OK, success(&w)).into_response(),
-            ApiResponse::TradeVec(t) => (StatusCode::OK, success(&t)).into_response(),
-            ApiResponse::StockId(id) => {
-                (StatusCode::OK, success(&json!({"stock_id": id}))).into_response()
-            }
+            ApiResponse::None => (StatusCode::OK, success(&Some(()))),
+            ApiResponse::NoneCreated => (StatusCode::CREATED, success(&Some(()))),
+            ApiResponse::Token(t) => (StatusCode::OK, success(&json!({"token": t}))),
+            ApiResponse::StockPriceVec(s) => (StatusCode::OK, success(&s)),
+            ApiResponse::StockPortfolioVec(s) => (StatusCode::OK, success(&s)),
+            ApiResponse::Balance(b) => (StatusCode::OK, success(&json!({"balance": b}))),
+            ApiResponse::WalletVec(w) => (StatusCode::OK, success(&w)),
+            ApiResponse::TradeVec(t) => (StatusCode::OK, success(&t)),
+            ApiResponse::StockId(id) => (StatusCode::OK, success(&json!({"stock_id": id}))),
         }
+        .into_response()
+    }
+}
+
+#[derive(Debug)]
+pub enum AppError {
+    UsernameAlreadyTaken,
+    UserDoesNotExist,
+    AuthTokenInvalid,
+    AuthTokenNotPresent,
+    /// Generic DB error that is irrecoverable. Required: `error!()`
+    DatabaseError,
+    /// Error that should not happen/be possible. Required: `error!()`
+    InternalServerError,
+}
+
+fn error(input: &'static str) -> String {
+    json!({ "success": false, "data": { "error": input} }).to_string()
+}
+
+impl IntoResponse for AppError {
+    #[tracing::instrument(fields(response_type = "AppError"))]
+    fn into_response(self) -> Response {
+        match self {
+            AppError::UsernameAlreadyTaken => {
+                (StatusCode::CONFLICT, error("Username already taken"))
+            }
+            AppError::UserDoesNotExist => (StatusCode::NOT_FOUND, error("User does not exist")),
+            AppError::AuthTokenNotPresent => (
+                StatusCode::UNAUTHORIZED,
+                error("Authorization token not present"),
+            ),
+            AppError::AuthTokenInvalid => (
+                StatusCode::UNAUTHORIZED,
+                error("Authorization token not valid"),
+            ),
+            AppError::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, error("")),
+            AppError::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, error("")),
+        }
+        .into_response()
     }
 }

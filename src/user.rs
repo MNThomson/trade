@@ -5,12 +5,14 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use headers::{Header, HeaderName, HeaderValue};
-use http::StatusCode;
 use jsonwebtoken::{DecodingKey, EncodingKey, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
-use tracing::{Instrument, info_span};
+use tracing::{Instrument, error, info_span};
 
-use crate::{AppState, types::ApiResponse};
+use crate::{
+    AppState,
+    types::{ApiResponse, AppError},
+};
 
 static SECRET: &str = "SECRET";
 static JWT_EXPIRATION_SECS: u64 = 60 * 5;
@@ -28,7 +30,7 @@ impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
 {
-    type Rejection = ApiResponse;
+    type Rejection = AppError;
 
     async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
         let root_span = tracing::Span::current();
@@ -37,14 +39,14 @@ where
             let TypedHeader(token) = parts
                 .extract::<TypedHeader<TokenHeader>>()
                 .await
-                .map_err(|_| ApiResponse::Error(StatusCode::UNAUTHORIZED, "No Token"))?;
+                .map_err(|_| AppError::AuthTokenNotPresent)?;
 
             let token_data = decode::<Jwt>(
                 &token.0,
                 &DecodingKey::from_secret(SECRET.as_bytes()),
                 &Validation::default(),
             )
-            .map_err(|_| ApiResponse::Error(StatusCode::UNAUTHORIZED, "Invalid Token"))?;
+            .map_err(|_| AppError::AuthTokenInvalid)?;
             Ok(token_data.claims.sub)
         }
         .instrument(s)
@@ -92,23 +94,32 @@ pub struct LoginRequest {
 
 #[tracing::instrument(skip_all)]
 pub async fn login(
-    State(_state): State<AppState>,
-    Json(_payload): Json<LoginRequest>,
-) -> Result<ApiResponse, ApiResponse> {
-    //let u = _state.db.get_user(_payload.user_name).await;
+    State(state): State<AppState>,
+    Json(body): Json<LoginRequest>,
+) -> Result<ApiResponse, AppError> {
+    let u = state.db.get_user(body.user_name).await?;
+
+    let claims = Jwt {
+        sub: u.user_id,
+        exp: std::time::SystemTime::now()
+            .duration_since(std::time::SystemTime::UNIX_EPOCH)
+            .map_err(|e| {
+                error!("expected to get system time: {}", e);
+                AppError::InternalServerError
+            })?
+            .as_secs()
+            + JWT_EXPIRATION_SECS,
+    };
+
     let token = encode(
         &jsonwebtoken::Header::default(),
-        &Jwt {
-            sub: "0".to_owned(),
-            exp: std::time::SystemTime::now()
-                .duration_since(std::time::SystemTime::UNIX_EPOCH)
-                .map_err(|_| ApiResponse::Error(StatusCode::INTERNAL_SERVER_ERROR, ""))?
-                .as_secs()
-                + JWT_EXPIRATION_SECS,
-        },
+        &claims,
         &EncodingKey::from_secret(SECRET.as_bytes()),
     )
-    .map_err(|_| ApiResponse::Error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create token"))?;
+    .map_err(|e| {
+        error!("couldn't encode token: {}", e);
+        AppError::InternalServerError
+    })?;
 
     Ok(ApiResponse::Token(token))
 }
@@ -122,8 +133,10 @@ pub struct RegisterRequest {
 
 #[tracing::instrument(skip_all)]
 pub async fn register(
-    State(_state): State<AppState>,
-    Json(_payload): Json<RegisterRequest>,
-) -> ApiResponse {
-    ApiResponse::NoneCreated
+    State(state): State<AppState>,
+    Json(body): Json<RegisterRequest>,
+) -> Result<ApiResponse, AppError> {
+    state.db.create_user(body.user_name, body.password).await?;
+
+    Ok(ApiResponse::NoneCreated)
 }

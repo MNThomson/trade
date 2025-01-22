@@ -10,16 +10,14 @@ PRAGMA mmap_size = 2147483648; -- 2GB
 PRAGMA page_size = 8192; -- 8Kb
 
 CREATE TABLE users (
-    user_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL PRIMARY KEY,
     user_name TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL
-    --created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
-
-INSERT INTO users (user_name, password) VALUES ("Max", "Pass");
 
 CREATE TABLE stocks (
-    stock_id  INTEGER PRIMARY KEY AUTOINCREMENT,
+    stock_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     stock_name TEXT NOT NULL
-    --created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) STRICT;
+
+INSERT INTO users (user_id, user_name, password) VALUES ("01D39ZY06FGSCTVN4T2V9PKHFZ", "admin", "pass");

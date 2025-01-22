@@ -3,6 +3,10 @@ use std::fs::remove_file;
 use std::{fs::File, time::Duration};
 
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
+use tracing::error;
+use ulid::Ulid;
+
+use crate::types::AppError;
 
 pub type DbPool = SqlitePool;
 
@@ -53,35 +57,50 @@ impl DB {
     }
 
     #[tracing::instrument(skip(self, password))]
-    pub async fn create_user(&self, user_name: String, password: String) -> Result<(), ()> {
-        let _res = sqlx::query_as!(
-            User,
-            "INSERT INTO users (user_name, password) VALUES (?, ?)",
+    pub async fn create_user(&self, user_name: String, password: String) -> Result<(), AppError> {
+        let user_id = Ulid::new().to_string();
+        let res = sqlx::query!(
+            "INSERT INTO users (user_id, user_name, password) VALUES (?, ?, ?)",
+            user_id,
             user_name,
             password
         )
         .execute(&self.pool)
         .await
-        .unwrap();
+        .map_err(|e| match &e {
+            sqlx::Error::Database(msg) if msg.message().contains("UNIQUE constraint failed:") => {
+                AppError::UsernameAlreadyTaken
+            }
+            _ => {
+                error!(user_id, user_name, "{}", &e);
+                AppError::DatabaseError
+            }
+        })?;
+        debug_assert_eq!(res.rows_affected(), 1);
 
         Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn get_user(&self, user_name: String) -> Result<Option<()>, ()> {
-        let row = sqlx::query_as!(User, "SELECT * FROM users WHERE user_name = ?", user_name)
+    pub async fn get_user(&self, user_name: String) -> Result<DbUser, AppError> {
+        let row = sqlx::query_as!(DbUser, "SELECT * FROM users WHERE user_name = ?", user_name)
             .fetch_one(&self.pool)
             .await
-            .unwrap();
+            .map_err(|e| match &e {
+                sqlx::Error::RowNotFound => AppError::UserDoesNotExist,
+                _ => {
+                    error!(user_name, "{}", &e);
+                    AppError::DatabaseError
+                }
+            })?;
 
-        println!("ASDSAD {:?}", row);
-        Ok(None)
+        Ok(row)
     }
 }
 
 #[derive(Debug)]
-struct User {
-    user_id: i64,
-    user_name: String,
-    password: String,
+pub struct DbUser {
+    pub user_id: String,
+    pub user_name: String,
+    pub password: String,
 }
