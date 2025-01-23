@@ -20,4 +20,5 @@ CREATE TABLE stocks (
     stock_name TEXT NOT NULL
 ) STRICT;
 
-INSERT INTO users (user_id, user_name, password) VALUES ("01D39ZY06FGSCTVN4T2V9PKHFZ", "admin", "pass");
+-- admin/pass
+INSERT INTO users (user_id, user_name, password) VALUES ("01D39ZY06FGSCTVN4T2V9PKHFZ", "admin", "$argon2id$v=19$m=1024,t=1,p=1$HAZcjX8wBnPhvVhYBpXO5g$H009UoKExbLzSHbl5Ru6WEQ4djyRi5sU8fkfCwk8ulI");

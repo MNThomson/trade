@@ -10,6 +10,7 @@ repository = "https://github.com/MNThomson/trade"
 version = "0.0.0"
 
 [dependencies]
+argon2 = "0.5.3"
 axum = { version = "0.7", features = ["macros"] }
 axum-extra = { version = "0.9", features = ["typed-header"] }
 axum-macros = { version = "0.5" }

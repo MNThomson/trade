@@ -1,3 +1,9 @@
+use argon2::{
+    Algorithm, Argon2, Params,
+    password_hash::{
+        self, PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng,
+    },
+};
 use axum::{
     RequestPartsExt, async_trait,
     extract::{FromRequestParts, Json, State},
@@ -82,7 +88,7 @@ impl Header for TokenHeader {
     where
         E: Extend<HeaderValue>,
     {
-        unreachable!();
+        unreachable!("token header is never sent as a response");
     }
 }
 
@@ -98,6 +104,19 @@ pub async fn login(
     Json(body): Json<LoginRequest>,
 ) -> Result<ApiResponse, AppError> {
     let u = state.db.get_user(body.user_name).await?;
+
+    hasher()
+        .verify_password(
+            body.password.as_bytes(),
+            &PasswordHash::new(&u.password).expect("stored password hash to be valid"),
+        )
+        .map_err(|e| {
+            if matches!(e, password_hash::Error::Password) {
+                return AppError::PasswordInvalid;
+            }
+            error!("verifying password failed: {}", e);
+            AppError::InternalServerError
+        })?;
 
     let claims = Jwt {
         sub: u.user_id,
@@ -136,7 +155,23 @@ pub async fn register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
 ) -> Result<ApiResponse, AppError> {
-    state.db.create_user(body.user_name, body.password).await?;
+    let password_hash = hasher()
+        .hash_password(body.password.as_bytes(), &SaltString::generate(&mut OsRng))
+        .map_err(|e| {
+            error!("cannot hash password :{}", e);
+            AppError::InternalServerError
+        })?
+        .to_string();
+
+    state.db.create_user(body.user_name, password_hash).await?;
 
     Ok(ApiResponse::NoneCreated)
+}
+
+pub fn hasher() -> Argon2<'static> {
+    Argon2::new(
+        Algorithm::Argon2id,
+        argon2::Version::V0x13,
+        Params::new(1024, 1, 1, Some(Params::DEFAULT_OUTPUT_LEN)).expect("correct Argon2 params"),
+    )
 }

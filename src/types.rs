@@ -97,11 +97,7 @@ pub enum ApiResponse {
 }
 
 fn success<T: Serialize>(input: &T) -> String {
-    json!({
-        "success": true,
-        "data": input,
-    })
-    .to_string()
+    json!({ "success": true, "data": input }).to_string()
 }
 
 impl IntoResponse for ApiResponse {
@@ -125,7 +121,8 @@ impl IntoResponse for ApiResponse {
 #[derive(Debug)]
 pub enum AppError {
     UsernameAlreadyTaken,
-    UserDoesNotExist,
+    UserNotFoud,
+    PasswordInvalid,
     AuthTokenInvalid,
     AuthTokenNotPresent,
     /// Generic DB error that is irrecoverable. Required: `error!()`
@@ -135,7 +132,7 @@ pub enum AppError {
 }
 
 fn error(input: &'static str) -> String {
-    json!({ "success": false, "data": { "error": input} }).to_string()
+    json!({ "success": false, "data": { "error": input } }).to_string()
 }
 
 impl IntoResponse for AppError {
@@ -145,7 +142,10 @@ impl IntoResponse for AppError {
             AppError::UsernameAlreadyTaken => {
                 (StatusCode::CONFLICT, error("Username already taken"))
             }
-            AppError::UserDoesNotExist => (StatusCode::NOT_FOUND, error("User does not exist")),
+            AppError::PasswordInvalid | AppError::UserNotFoud => (
+                StatusCode::UNAUTHORIZED,
+                error("Username/Password combination incorrect"),
+            ),
             AppError::AuthTokenNotPresent => (
                 StatusCode::UNAUTHORIZED,
                 error("Authorization token not present"),

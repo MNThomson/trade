@@ -87,7 +87,7 @@ impl DB {
             .fetch_one(&self.pool)
             .await
             .map_err(|e| match &e {
-                sqlx::Error::RowNotFound => AppError::UserDoesNotExist,
+                sqlx::Error::RowNotFound => AppError::UserNotFoud,
                 _ => {
                     error!(user_name, "{}", &e);
                     AppError::DatabaseError
