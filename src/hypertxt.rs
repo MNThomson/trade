@@ -10,8 +10,10 @@ impl<T: GlobalAttributes> HtmxAttributes for T {}
 
 #[cfg(test)]
 pub mod tests {
-    use hypertext::rsx;
+    use hypertext::{Renderable, html_elements, rsx};
     use pretty_assertions::assert_eq;
+
+    use super::HtmxAttributes;
 
     #[test]
     fn test_rsx_macro_with_htmx_attributes() {

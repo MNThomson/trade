@@ -25,7 +25,7 @@ static JWT_EXPIRATION_SECS: u64 = 60 * 5;
 
 #[derive(Serialize, Deserialize)]
 pub struct Jwt {
-    pub sub: String,
+    pub sub: i64,
     pub exp: u64,
 }
 
@@ -58,9 +58,9 @@ where
         .instrument(s)
         .await?;
 
-        root_span.record("user.id", &t);
+        root_span.record("user.id", t);
 
-        Ok(AuthUser(t))
+        Ok(AuthUser(t.to_string()))
     }
 }
 
@@ -147,6 +147,7 @@ pub async fn login(
 pub struct RegisterRequest {
     user_name: String,
     password: String,
+    #[allow(unused)]
     name: String,
 }
 

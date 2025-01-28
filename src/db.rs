@@ -4,7 +4,6 @@ use std::{fs::File, time::Duration};
 
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use tracing::error;
-use ulid::Ulid;
 
 use crate::types::AppError;
 
@@ -58,10 +57,8 @@ impl DB {
 
     #[tracing::instrument(skip(self, password))]
     pub async fn create_user(&self, user_name: String, password: String) -> Result<(), AppError> {
-        let user_id = Ulid::new().to_string();
         let res = sqlx::query!(
-            "INSERT INTO users (user_id, user_name, password) VALUES (?, ?, ?)",
-            user_id,
+            "INSERT INTO users (user_name, password) VALUES (?, ?)",
             user_name,
             password
         )
@@ -72,7 +69,7 @@ impl DB {
                 AppError::UsernameAlreadyTaken
             }
             _ => {
-                error!(user_id, user_name, "{}", &e);
+                error!(user_name, "{}", &e);
                 AppError::DatabaseError
             }
         })?;
@@ -100,7 +97,8 @@ impl DB {
 
 #[derive(Debug)]
 pub struct DbUser {
-    pub user_id: String,
+    pub user_id: i64,
     pub user_name: String,
     pub password: String,
+    pub created_at: i64,
 }

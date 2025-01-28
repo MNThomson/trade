@@ -1,15 +1,15 @@
 use axum::extract::Json;
 use serde::Deserialize;
 
-use crate::types::ApiResponse;
+use crate::types::{ApiResponse, OrderType};
 
 #[derive(Deserialize)]
 pub struct PlaceStockOrderRequest {
     stock_id: String,
     is_buy: bool,
-    order_type: String,
+    order_type: OrderType,
     quantity: u32,
-    price: f64,
+    price: Option<u32>,
 }
 
 #[tracing::instrument(skip_all)]

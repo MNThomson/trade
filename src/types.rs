@@ -6,7 +6,6 @@ use chrono::{DateTime, Utc};
 use fake::{Dummy, faker::company::en::CompanyName};
 use serde::{Deserialize, Serialize};
 use serde_json::{self, json};
-use ulid::Ulid;
 
 use crate::DB;
 
@@ -17,7 +16,7 @@ pub struct AppState {
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct StockPrice {
-    pub stock_id: Ulid,
+    pub stock_id: String,
     #[dummy(faker = "CompanyName()")]
     pub stock_name: String,
     #[dummy(faker = "1..200")]
@@ -26,7 +25,7 @@ pub struct StockPrice {
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct StockPortfolio {
-    pub stock_id: Ulid,
+    pub stock_id: String,
     #[dummy(faker = "CompanyName()")]
     pub stock_name: String,
     #[dummy(faker = "1..1000")]
@@ -35,8 +34,8 @@ pub struct StockPortfolio {
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct WalletTransaction {
-    pub wallet_tx_id: Ulid,
-    pub stock_tx_id: Ulid,
+    pub wallet_tx_id: String,
+    pub stock_tx_id: String,
     pub is_debit: bool,
     #[dummy(faker = "1..10000")]
     pub amount: usize,
@@ -48,8 +47,8 @@ pub struct WalletTransaction {
 pub enum OrderStatus {
     Cancelled = -1,
     Completed = 0,
-    Pending = 1,
-    InProgress = 2,
+    InProgress = 1,
+    PartiallyComplete = 2,
 }
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
@@ -61,9 +60,9 @@ pub enum OrderType {
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
 pub struct StockTransaction {
-    pub stock_tx_id: Ulid,
-    pub stock_id: Ulid,
-    pub wallet_tx_id: Ulid,
+    pub stock_tx_id: String,
+    pub stock_id: String,
+    pub wallet_tx_id: String,
     pub order_status: OrderStatus,
     pub is_buy: bool,
     pub order_type: OrderType,
