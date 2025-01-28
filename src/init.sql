@@ -18,7 +18,41 @@ CREATE TABLE users (
 
 CREATE TABLE stocks (
     stock_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    stock_name TEXT NOT NULL
+    stock_name TEXT NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') || substr(strftime('%f', 'now'), 4))
+) STRICT;
+
+CREATE TABLE orders (
+    order_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    stock_id INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    limit_price INTEGER,           -- Only for sells
+    order_status INTEGER NOT NULL, -- Potentially enum
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') || substr(strftime('%f', 'now'), 4)),
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (stock_id) REFERENCES stocks(stock_id)
+) STRICT;
+
+CREATE TABLE trades (
+    trade_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    sell_order INTEGER NOT NULL,
+    buy_order INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') || substr(strftime('%f', 'now'), 4)),
+    FOREIGN KEY (sell_order) REFERENCES orders(order_id),
+    FOREIGN KEY (buy_order) REFERENCES orders(order_id)
+    --stock_id INTEGER NOT NULL, -- redundant
+    --price INTEGER NOT NULL,    -- redundant
+    --FOREIGN KEY (stock_id) REFERENCES stocks(stock_id)
+) STRICT;
+
+CREATE TABLE deposits (
+    deposit_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    amount INTEGER NOT NULL,
+    created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now') || substr(strftime('%f', 'now'), 4)),
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 ) STRICT;
 
 -- admin/pass
