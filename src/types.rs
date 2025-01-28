@@ -120,7 +120,7 @@ impl IntoResponse for ApiResponse {
 #[derive(Debug)]
 pub enum AppError {
     UsernameAlreadyTaken,
-    UserNotFoud,
+    UserNotFound,
     PasswordInvalid,
     AuthTokenInvalid,
     AuthTokenNotPresent,
@@ -141,7 +141,7 @@ impl IntoResponse for AppError {
             AppError::UsernameAlreadyTaken => {
                 (StatusCode::CONFLICT, error("Username already taken"))
             }
-            AppError::PasswordInvalid | AppError::UserNotFoud => (
+            AppError::PasswordInvalid | AppError::UserNotFound => (
                 StatusCode::UNAUTHORIZED,
                 error("Username/Password combination incorrect"),
             ),

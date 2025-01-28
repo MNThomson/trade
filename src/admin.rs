@@ -1,7 +1,11 @@
 use axum::{Json, extract::State};
 use serde::Deserialize;
 
-use crate::{AppState, types::ApiResponse};
+use crate::{
+    AppState,
+    auth::AuthUser,
+    types::{ApiResponse, AppError},
+};
 
 #[derive(Deserialize)]
 pub struct AddMoneyRequest {
@@ -10,10 +14,12 @@ pub struct AddMoneyRequest {
 
 #[tracing::instrument(skip_all)]
 pub async fn add_money_to_wallet(
-    State(_state): State<AppState>,
-    Json(_payload): Json<AddMoneyRequest>,
-) -> ApiResponse {
-    ApiResponse::None
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+    Json(body): Json<AddMoneyRequest>,
+) -> Result<ApiResponse, AppError> {
+    state.db.add_money_to_user(user, body.amount).await?;
+    Ok(ApiResponse::None)
 }
 
 #[derive(Deserialize)]

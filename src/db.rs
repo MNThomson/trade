@@ -84,7 +84,7 @@ impl DB {
             .fetch_one(&self.pool)
             .await
             .map_err(|e| match &e {
-                sqlx::Error::RowNotFound => AppError::UserNotFoud,
+                sqlx::Error::RowNotFound => AppError::UserNotFound,
                 _ => {
                     error!(user_name, "{}", &e);
                     AppError::DatabaseError
@@ -92,6 +92,26 @@ impl DB {
             })?;
 
         Ok(row)
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn add_money_to_user(&self, user_id: i64, amount: i64) -> Result<(), AppError> {
+        let _row = sqlx::query!(
+            "INSERT INTO deposits (user_id, amount) VALUES (?, ?)",
+            user_id,
+            amount
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| match &e {
+            sqlx::Error::RowNotFound => AppError::UserNotFound,
+            _ => {
+                error!(user_id, "{}", &e);
+                AppError::DatabaseError
+            }
+        })?;
+
+        Ok(())
     }
 }
 
