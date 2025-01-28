@@ -96,7 +96,7 @@ async fn main() {
 
 #[tracing::instrument(skip(user))]
 async fn protected(AuthUser(user): AuthUser) -> impl IntoResponse {
-    user
+    user.to_string()
 }
 
 async fn healthcheck(State(state): State<AppState>) -> impl IntoResponse {

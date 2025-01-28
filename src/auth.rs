@@ -15,7 +15,7 @@ pub struct Jwt {
     pub exp: u64,
 }
 
-pub struct AuthUser(pub String);
+pub struct AuthUser(pub i64);
 
 #[async_trait]
 impl<S> FromRequestParts<S> for AuthUser
@@ -46,7 +46,7 @@ where
 
         root_span.record("user.id", t);
 
-        Ok(AuthUser(t.to_string()))
+        Ok(AuthUser(t))
     }
 }
 
