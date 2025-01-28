@@ -4,93 +4,18 @@ use argon2::{
         self, PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng,
     },
 };
-use axum::{
-    RequestPartsExt, async_trait,
-    extract::{FromRequestParts, Json, State},
-    http::request::Parts,
-};
-use axum_extra::TypedHeader;
-use headers::{Header, HeaderName, HeaderValue};
-use jsonwebtoken::{DecodingKey, EncodingKey, Validation, decode, encode};
-use serde::{Deserialize, Serialize};
-use tracing::{Instrument, error, info_span};
+use axum::extract::{Json, State};
+use jsonwebtoken::{EncodingKey, encode};
+use serde::Deserialize;
+use tracing::error;
 
 use crate::{
     AppState,
+    auth::{Jwt, SECRET},
     types::{ApiResponse, AppError},
 };
 
-static SECRET: &str = "SECRET";
 static JWT_EXPIRATION_SECS: u64 = 60 * 5;
-
-#[derive(Serialize, Deserialize)]
-pub struct Jwt {
-    pub sub: i64,
-    pub exp: u64,
-}
-
-pub struct AuthUser(pub String);
-
-#[async_trait]
-impl<S> FromRequestParts<S> for AuthUser
-where
-    S: Send + Sync,
-{
-    type Rejection = AppError;
-
-    async fn from_request_parts(parts: &mut Parts, _: &S) -> Result<Self, Self::Rejection> {
-        let root_span = tracing::Span::current();
-        let s = info_span!("AuthUser Extractor");
-        let t = async move {
-            let TypedHeader(token) = parts
-                .extract::<TypedHeader<TokenHeader>>()
-                .await
-                .map_err(|_| AppError::AuthTokenNotPresent)?;
-
-            let token_data = decode::<Jwt>(
-                &token.0,
-                &DecodingKey::from_secret(SECRET.as_bytes()),
-                &Validation::default(),
-            )
-            .map_err(|_| AppError::AuthTokenInvalid)?;
-            Ok(token_data.claims.sub)
-        }
-        .instrument(s)
-        .await?;
-
-        root_span.record("user.id", t);
-
-        Ok(AuthUser(t.to_string()))
-    }
-}
-
-static TOKEN_HEADER: HeaderName = HeaderName::from_static("token");
-struct TokenHeader(String);
-impl Header for TokenHeader {
-    fn name() -> &'static HeaderName {
-        &TOKEN_HEADER
-    }
-
-    fn decode<'i, I>(values: &mut I) -> Result<Self, headers::Error>
-    where
-        I: Iterator<Item = &'i HeaderValue>,
-    {
-        let value = values.next().ok_or_else(headers::Error::invalid)?;
-        Ok(TokenHeader(
-            value
-                .to_str()
-                .map_err(|_| headers::Error::invalid())?
-                .to_string(),
-        ))
-    }
-
-    fn encode<E>(&self, _values: &mut E)
-    where
-        E: Extend<HeaderValue>,
-    {
-        unreachable!("token header is never sent as a response");
-    }
-}
 
 #[derive(Deserialize)]
 pub struct LoginRequest {

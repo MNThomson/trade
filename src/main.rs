@@ -13,14 +13,15 @@ use tower_http::catch_panic::CatchPanicLayer;
 use tracing::{error, info};
 
 use crate::{
+    auth::AuthUser,
     db::DB,
     frontend::home,
     telemetry::{otel_tracing, tracing_init},
     types::AppState,
-    user::AuthUser,
 };
 
 mod admin;
+mod auth;
 mod db;
 mod frontend;
 mod hypertxt;
