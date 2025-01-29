@@ -9,11 +9,63 @@ mod tests {
     use serde::{Deserialize, Serialize, de};
     use tower::{Service, ServiceExt};
 
-    use crate::{db::DB, router, types::AppState};
+    use crate::{
+        db::DB,
+        router,
+        types::{AppState, TokenResponse},
+        user::{LoginRequest, RegisterRequest},
+    };
 
     #[tokio::test]
     async fn integration() {
         let app = App::init().await;
+
+        // Vanguard Register
+        let sc = app
+            .clone()
+            .register(RegisterRequest {
+                user_name: String::from("VanguardETF"),
+                password: String::from("Vang@123"),
+                name: String::from("Vanguard Corp."),
+            })
+            .await
+            .unwrap();
+        assert_eq!(sc, 201);
+
+        // Vanguard username already taken
+        let sc = app
+            .clone()
+            .register(RegisterRequest {
+                user_name: String::from("VanguardETF"),
+                password: String::from("Comp@124"),
+                name: String::from("Vanguard Ltd."),
+            })
+            .await
+            .unwrap_err();
+        assert_eq!(sc, 409);
+
+        // Vanguard Incorrect Password Login
+        let sc = app
+            .clone()
+            .login(LoginRequest {
+                user_name: String::from("VanguardETF"),
+                password: String::from("Vang@1234"),
+            })
+            .await
+            .unwrap_err();
+        assert_eq!(sc, 401);
+
+        // Vanguard Login
+        let (sc, resp) = app
+            .clone()
+            .login(LoginRequest {
+                user_name: String::from("VanguardETF"),
+                password: String::from("Vang@123"),
+            })
+            .await
+            .unwrap();
+        let _corp_token = resp.token;
+        assert_eq!(sc, 200);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -67,6 +119,35 @@ mod tests {
             })?;
 
             Ok((_parts.status, obj.data))
+        }
+
+        async fn register(self, payload: RegisterRequest) -> Result<StatusCode, StatusCode> {
+            let (sc, _resp) = self
+                .request::<_, Option<i64>>(
+                    Request::builder()
+                        .uri("/authentication/register")
+                        .method("POST"),
+                    Some(payload),
+                )
+                .await?;
+
+            Ok(sc)
+        }
+
+        async fn login(
+            self,
+            payload: LoginRequest,
+        ) -> Result<(StatusCode, TokenResponse), StatusCode> {
+            let resp = self
+                .request::<_, TokenResponse>(
+                    Request::builder()
+                        .uri("/authentication/login")
+                        .method("POST"),
+                    Some(payload),
+                )
+                .await?;
+
+            Ok(resp)
         }
     }
 }

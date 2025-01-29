@@ -38,7 +38,9 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 
 [dev-dependencies]
+hyper = { version = "1.0.0", features = ["full"] }
 pretty_assertions = "1.4.1"
+tower = { version = "0.4", features = ["util"] }
 
 [build-dependencies]
 rusqlite.version = "0.32.1"
