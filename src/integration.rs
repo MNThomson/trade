@@ -14,7 +14,7 @@ mod tests {
         db::DB,
         router,
         telemetry::tracing_init,
-        types::{AppState, StockId, TokenResponse},
+        types::{AppState, StockId, StockPortfolio, StockPortfolioVec, TokenResponse},
         user::{LoginRequest, RegisterRequest},
     };
 
@@ -87,7 +87,7 @@ mod tests {
         let sc = app
             .clone()
             .add_stock_to_user(&vanguard_token, AddStockToUserRequest {
-                stock_id: google_stock_id,
+                stock_id: google_stock_id.clone(),
                 quantity: 550,
             })
             .await
@@ -109,12 +109,32 @@ mod tests {
         let sc = app
             .clone()
             .add_stock_to_user(&vanguard_token, AddStockToUserRequest {
-                stock_id: apple_stock_id,
+                stock_id: apple_stock_id.clone(),
                 quantity: 350,
             })
             .await
             .unwrap();
         assert_eq!(sc, 200);
+
+        // Get Vanguard Stock Portfolio
+        let (sc, resp) = app
+            .clone()
+            .get_stock_portfolio(&vanguard_token)
+            .await
+            .unwrap();
+        assert_eq!(sc, 200);
+        assert_eq!(resp.0, vec![
+            StockPortfolio {
+                stock_id: google_stock_id.clone(),
+                stock_name: String::from("Google"),
+                quantity_owned: 550
+            },
+            StockPortfolio {
+                stock_id: apple_stock_id.clone(),
+                stock_name: String::from("Apple"),
+                quantity_owned: 350
+            },
+        ]);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -164,10 +184,8 @@ mod tests {
 
             let (_parts, rawbody) = response.into_parts();
             let bytes = axum::body::to_bytes(rawbody, usize::MAX).await.unwrap();
-            let obj: ApiResponseWrapper<R> = serde_json::from_slice(&bytes).map_err(|e| {
-                dbg!(e);
-                _parts.status
-            })?;
+            let obj: ApiResponseWrapper<R> =
+                serde_json::from_slice(&bytes).map_err(|_| _parts.status)?;
 
             Ok((_parts.status, obj.data))
         }
@@ -235,6 +253,21 @@ mod tests {
                 .await?;
 
             Ok(sc)
+        }
+
+        async fn get_stock_portfolio(
+            self,
+            token: &String,
+        ) -> Result<(StatusCode, StockPortfolioVec), StatusCode> {
+            let (sc, resp) = self
+                .request::<_, StockPortfolioVec>(
+                    token,
+                    Request::builder().uri("/transaction/getStockPortfolio"),
+                    None::<i64>,
+                )
+                .await?;
+
+            Ok((sc, resp))
         }
     }
 }

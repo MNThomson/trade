@@ -23,13 +23,13 @@ pub struct StockPrice {
     pub current_price: usize,
 }
 
-#[derive(Serialize, Deserialize, Debug, Dummy)]
+#[derive(Serialize, Deserialize, Debug, Dummy, PartialEq)]
 pub struct StockPortfolio {
     pub stock_id: String,
     #[dummy(faker = "CompanyName()")]
     pub stock_name: String,
     #[dummy(faker = "1..1000")]
-    pub quantity_owned: usize,
+    pub quantity_owned: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Dummy)]
@@ -45,6 +45,7 @@ pub struct WalletTransaction {
 #[derive(Serialize, Deserialize, Debug, Dummy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OrderStatus {
+    Failed = -2,
     Cancelled = -1,
     Completed = 0,
     InProgress = 1,

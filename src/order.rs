@@ -3,6 +3,7 @@ use serde::Deserialize;
 
 use crate::types::{EmptyCreatedResponse, EmptyResponse, OrderType};
 
+#[allow(unused)]
 #[derive(Deserialize)]
 pub struct PlaceStockOrderRequest {
     stock_id: String,
@@ -19,6 +20,7 @@ pub async fn place_stock_order(
     EmptyCreatedResponse {}
 }
 
+#[allow(unused)]
 #[derive(Deserialize)]
 pub struct CancelStockTransactionRequest {
     stock_tx_id: String,

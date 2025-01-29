@@ -3,7 +3,8 @@ use fake::{Fake, Faker};
 
 use crate::{
     AppState,
-    types::{Balance, StockPortfolioVec, StockPriceVec, TradeVec, WalletVec},
+    auth::AuthUser,
+    types::{AppError, Balance, StockPortfolioVec, StockPriceVec, TradeVec, WalletVec},
 };
 
 #[tracing::instrument(skip_all)]
@@ -12,8 +13,12 @@ pub async fn get_stock_prices(State(_state): State<AppState>) -> StockPriceVec {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_stock_portfolio(State(_state): State<AppState>) -> StockPortfolioVec {
-    StockPortfolioVec(vec![Faker.fake(), Faker.fake()])
+pub async fn get_stock_portfolio(
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+) -> Result<StockPortfolioVec, AppError> {
+    let out = state.db.get_stock_portfolio(user).await?;
+    Ok(StockPortfolioVec(out))
 }
 
 #[tracing::instrument(skip_all)]

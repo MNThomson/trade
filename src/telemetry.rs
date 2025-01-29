@@ -35,7 +35,7 @@ pub fn tracing_init(service_name: &str, service_version: &str) {
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 format!(
-                    "none,{}=debug,{}=debug,db=debug,axum::rejection=trace",
+                    "none,{}=debug,{}=debug,axum::rejection=trace",
                     service_name,
                     env!("CARGO_PKG_NAME")
                 )

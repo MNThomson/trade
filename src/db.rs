@@ -5,7 +5,7 @@ use std::{fs::File, time::Duration};
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use tracing::error;
 
-use crate::types::AppError;
+use crate::types::{AppError, OrderStatus, StockPortfolio};
 
 pub type DbPool = SqlitePool;
 
@@ -138,10 +138,10 @@ impl DB {
         stock_id: i64,
         quantity: i64,
     ) -> Result<(), AppError> {
-        let _ = sqlx::query!(
-r#"INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status) VALUES (1, ?, ?, 0, 0), (?, ?, ?, NULL, 0);
-INSERT INTO trades (sell_order, buy_order, amount) VALUES ((SELECT order_id FROM orders WHERE user_id = 1 AND amount = ?), (SELECT order_id FROM orders WHERE user_id = ? AND amount = ?), ?);"#,
-            stock_id, quantity, user_id, stock_id, quantity, quantity, user_id, quantity, quantity
+        let _ = sqlx::query!(r#"
+            INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status) VALUES (1, ?, ?, 0, ?), (?, ?, ?, NULL, ?);
+            INSERT INTO trades (sell_order, buy_order, amount) VALUES ((SELECT order_id FROM orders WHERE user_id = 1 AND amount = ?), (SELECT order_id FROM orders WHERE user_id = ? AND amount = ?), ?);"#,
+            stock_id, quantity, OrderStatus::Completed as i64, user_id, stock_id, quantity, OrderStatus::Completed as i64, quantity, user_id, quantity, quantity
         )
         .execute(&self.pool)
         .await
@@ -152,6 +152,35 @@ INSERT INTO trades (sell_order, buy_order, amount) VALUES ((SELECT order_id FROM
 
         Ok(())
     }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_stock_portfolio(&self, user_id: i64) -> Result<Vec<StockPortfolio>, AppError> {
+        let data = sqlx::query_as::<_, DBStockPortfolio>(
+            r#"
+            SELECT s.stock_id, s.stock_name, SUM(CASE WHEN o.order_status = 0 AND t.buy_order = o.order_id THEN t.amount
+                            WHEN o.order_status = 0 AND t.sell_order = o.order_id THEN -t.amount
+                            ELSE 0 END) AS quantity_owned
+            FROM stocks s
+            LEFT JOIN orders o ON s.stock_id = o.stock_id
+            LEFT JOIN trades t ON o.order_id = t.buy_order OR o.order_id = t.sell_order
+            WHERE o.user_id = ?
+            GROUP BY s.stock_id, s.stock_name;"#,
+        )
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map(|p| p.iter().map(|i| StockPortfolio{
+                stock_id: i.stock_id.to_string(),
+                stock_name: i.stock_name.clone(),
+                quantity_owned: i.quantity_owned }
+            ).collect())
+        .map_err(|e|{
+                error!(user_id, "{}", &e);
+                AppError::DatabaseError
+        })?;
+
+        Ok(data)
+    }
 }
 
 #[derive(Debug)]
@@ -160,4 +189,11 @@ pub struct DbUser {
     pub user_name: String,
     pub password: String,
     pub created_at: i64,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct DBStockPortfolio {
+    stock_id: i64,
+    stock_name: String,
+    quantity_owned: i64,
 }

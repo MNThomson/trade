@@ -49,6 +49,7 @@ pub struct CreateStockRequest {
 
 #[tracing::instrument(skip_all)]
 pub async fn create_stock(
+    AuthUser(_user): AuthUser,
     State(state): State<AppState>,
     Json(payload): Json<CreateStockRequest>,
 ) -> Result<StockId, AppError> {
