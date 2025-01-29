@@ -10,15 +10,18 @@ mod tests {
     use tower::{Service, ServiceExt};
 
     use crate::{
-        admin::CreateStockRequest,
+        admin::{AddStockToUserRequest, CreateStockRequest},
         db::DB,
         router,
+        telemetry::tracing_init,
         types::{AppState, StockId, TokenResponse},
         user::{LoginRequest, RegisterRequest},
     };
 
     #[tokio::test]
     async fn integration() {
+        tracing_init(env!("CARGO_PKG_NAME"), env!("GIT_HASH"));
+
         let app = App::init().await;
 
         // Vanguard Register
@@ -81,6 +84,15 @@ mod tests {
         assert_eq!(sc, 200);
 
         // Add 550 Google Stock to Vanguard
+        let sc = app
+            .clone()
+            .add_stock_to_user(&vanguard_token, AddStockToUserRequest {
+                stock_id: google_stock_id,
+                quantity: 550,
+            })
+            .await
+            .unwrap();
+        assert_eq!(sc, 200);
 
         // Create Apple Stock
         let (sc, resp) = app
@@ -94,6 +106,15 @@ mod tests {
         assert_eq!(sc, 200);
 
         // Add 350 Apple Stock to Vanguard
+        let sc = app
+            .clone()
+            .add_stock_to_user(&vanguard_token, AddStockToUserRequest {
+                stock_id: apple_stock_id,
+                quantity: 350,
+            })
+            .await
+            .unwrap();
+        assert_eq!(sc, 200);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -196,6 +217,24 @@ mod tests {
                 .await?;
 
             Ok(resp)
+        }
+
+        async fn add_stock_to_user(
+            self,
+            token: &String,
+            payload: AddStockToUserRequest,
+        ) -> Result<StatusCode, StatusCode> {
+            let (sc, _resp) = self
+                .request::<_, Option<i64>>(
+                    token,
+                    Request::builder()
+                        .uri("/setup/addStockToUser")
+                        .method("POST"),
+                    Some(payload),
+                )
+                .await?;
+
+            Ok(sc)
         }
     }
 }

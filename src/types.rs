@@ -151,6 +151,7 @@ pub enum AppError {
     PasswordInvalid,
     AuthTokenInvalid,
     AuthTokenNotPresent,
+    StockNotFound,
     /// Generic DB error that is irrecoverable. Required: `error!()`
     DatabaseError,
     /// Error that should not happen/be possible. Required: `error!()`
@@ -180,6 +181,7 @@ impl IntoResponse for AppError {
                 StatusCode::UNAUTHORIZED,
                 error("Authorization token not valid"),
             ),
+            AppError::StockNotFound => (StatusCode::NOT_FOUND, error("Stock not found")),
             AppError::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, error("")),
             AppError::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, error("")),
         }

@@ -22,18 +22,24 @@ pub async fn add_money_to_wallet(
     Ok(EmptyCreatedResponse {})
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AddStockToUserRequest {
-    stock_id: String,
-    quantity: i64,
+    pub stock_id: String,
+    pub quantity: i64,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn add_stock_to_user(
-    State(_state): State<AppState>,
-    Json(_payload): Json<AddStockToUserRequest>,
-) -> EmptyResponse {
-    EmptyResponse {}
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+    Json(body): Json<AddStockToUserRequest>,
+) -> Result<EmptyResponse, AppError> {
+    let stock_id = body.stock_id.parse().map_err(|_| AppError::StockNotFound)?;
+    state
+        .db
+        .add_stock_to_user(user, stock_id, body.quantity)
+        .await?;
+    Ok(EmptyResponse {})
 }
 
 #[derive(Serialize, Deserialize)]

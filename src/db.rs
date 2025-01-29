@@ -130,6 +130,28 @@ impl DB {
 
         Ok(stock_id)
     }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn add_stock_to_user(
+        &self,
+        user_id: i64,
+        stock_id: i64,
+        quantity: i64,
+    ) -> Result<(), AppError> {
+        let _ = sqlx::query!(
+r#"INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status) VALUES (1, ?, ?, 0, 0), (?, ?, ?, NULL, 0);
+INSERT INTO trades (sell_order, buy_order, amount) VALUES ((SELECT order_id FROM orders WHERE user_id = 1 AND amount = ?), (SELECT order_id FROM orders WHERE user_id = ? AND amount = ?), ?);"#,
+            stock_id, quantity, user_id, stock_id, quantity, quantity, user_id, quantity, quantity
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            error!(user_id, stock_id, quantity, "{}", &e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
