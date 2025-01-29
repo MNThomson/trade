@@ -6,15 +6,17 @@ mod tests {
         routing::RouterIntoService,
     };
     use http::request::Builder;
+    use pretty_assertions::assert_eq;
     use serde::{Deserialize, Serialize, de};
     use tower::{Service, ServiceExt};
 
     use crate::{
         admin::{AddStockToUserRequest, CreateStockRequest},
         db::DB,
+        order::PlaceStockOrderRequest,
         router,
         telemetry::tracing_init,
-        types::{AppState, StockId, StockPortfolio, StockPortfolioVec, TokenResponse},
+        types::{AppState, OrderType, StockId, StockPortfolio, StockPortfolioVec, TokenResponse},
         user::{LoginRequest, RegisterRequest},
     };
 
@@ -122,19 +124,49 @@ mod tests {
             .get_stock_portfolio(&vanguard_token)
             .await
             .unwrap();
-        assert_eq!(sc, 200);
-        assert_eq!(resp.0, vec![
-            StockPortfolio {
+        assert_eq!(
+            (sc, resp.0),
+            (StatusCode::OK, vec![
+                StockPortfolio {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: String::from("Google"),
+                    quantity_owned: 550
+                },
+                StockPortfolio {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: String::from("Apple"),
+                    quantity_owned: 350
+                },
+            ])
+        );
+
+        // Vanguard Sell 550 Google
+        let sc = app
+            .clone()
+            .place_stock_order(&vanguard_token, PlaceStockOrderRequest {
                 stock_id: google_stock_id.clone(),
-                stock_name: String::from("Google"),
-                quantity_owned: 550
-            },
-            StockPortfolio {
+                is_buy: false,
+                order_type: OrderType::Limit,
+                quantity: 550,
+                price: Some(135),
+            })
+            .await
+            .unwrap();
+        assert_eq!(sc, StatusCode::CREATED);
+
+        // Vanguard Sell 350 Apple
+        let sc = app
+            .clone()
+            .place_stock_order(&vanguard_token, PlaceStockOrderRequest {
                 stock_id: apple_stock_id.clone(),
-                stock_name: String::from("Apple"),
-                quantity_owned: 350
-            },
-        ]);
+                is_buy: false,
+                order_type: OrderType::Limit,
+                quantity: 350,
+                price: Some(135),
+            })
+            .await
+            .unwrap();
+        assert_eq!(sc, StatusCode::CREATED);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -268,6 +300,24 @@ mod tests {
                 .await?;
 
             Ok((sc, resp))
+        }
+
+        async fn place_stock_order(
+            self,
+            token: &String,
+            payload: PlaceStockOrderRequest,
+        ) -> Result<StatusCode, StatusCode> {
+            let (sc, _resp) = self
+                .request::<_, Option<i64>>(
+                    token,
+                    Request::builder()
+                        .uri("/engine/placeStockOrder")
+                        .method("POST"),
+                    Some(payload),
+                )
+                .await?;
+
+            Ok(sc)
         }
     }
 }

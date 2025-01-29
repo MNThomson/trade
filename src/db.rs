@@ -181,6 +181,28 @@ impl DB {
 
         Ok(data)
     }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn create_sell_order(
+        &self,
+        user_id: i64,
+        stock_id: i64,
+        quantity: i64,
+        price: i64,
+    ) -> Result<(), AppError> {
+        let _ = sqlx::query!(r#"
+            INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status) VALUES (?, ?, ?, ?, ?);"#,
+            user_id, stock_id, quantity, price, OrderStatus::InProgress as i64
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            error!(user_id, stock_id, quantity, "{}", &e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]

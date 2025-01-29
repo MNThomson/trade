@@ -1,23 +1,40 @@
-use axum::extract::Json;
-use serde::Deserialize;
+use axum::extract::{Json, State};
+use serde::{Deserialize, Serialize};
 
-use crate::types::{EmptyCreatedResponse, EmptyResponse, OrderType};
+use crate::{
+    auth::AuthUser,
+    types::{AppError, AppState, EmptyCreatedResponse, EmptyResponse, OrderType},
+};
 
-#[allow(unused)]
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct PlaceStockOrderRequest {
-    stock_id: String,
-    is_buy: bool,
-    order_type: OrderType,
-    quantity: u32,
-    price: Option<u32>,
+    pub stock_id: String,
+    pub is_buy: bool,
+    pub order_type: OrderType,
+    pub quantity: i64,
+    pub price: Option<i64>,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn place_stock_order(
-    Json(_payload): Json<PlaceStockOrderRequest>,
-) -> EmptyCreatedResponse {
-    EmptyCreatedResponse {}
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+    Json(body): Json<PlaceStockOrderRequest>,
+) -> Result<EmptyCreatedResponse, AppError> {
+    if !body.is_buy {
+        state
+            .db
+            .create_sell_order(
+                user,
+                body.stock_id.parse().map_err(|_| AppError::StockNotFound)?,
+                body.quantity,
+                body.price.expect("is a sell order"),
+            )
+            .await?;
+        return Ok(EmptyCreatedResponse {});
+    }
+
+    Ok(EmptyCreatedResponse {})
 }
 
 #[allow(unused)]
