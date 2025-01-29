@@ -1,5 +1,5 @@
 use axum::{Json, extract::State};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     AppState,
@@ -36,17 +36,17 @@ pub async fn add_stock_to_user(
     EmptyResponse {}
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct CreateStockRequest {
-    stock_name: String,
+    pub stock_name: String,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn create_stock(
-    State(_state): State<AppState>,
-    Json(_payload): Json<CreateStockRequest>,
-) -> StockId {
-    StockId {
-        stock_id: "stock_id".to_string(),
-    }
+    State(state): State<AppState>,
+    Json(payload): Json<CreateStockRequest>,
+) -> Result<StockId, AppError> {
+    let stock_id = state.db.create_stock(payload.stock_name).await?.to_string();
+
+    Ok(StockId { stock_id })
 }

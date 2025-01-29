@@ -10,9 +10,10 @@ mod tests {
     use tower::{Service, ServiceExt};
 
     use crate::{
+        admin::CreateStockRequest,
         db::DB,
         router,
-        types::{AppState, TokenResponse},
+        types::{AppState, StockId, TokenResponse},
         user::{LoginRequest, RegisterRequest},
     };
 
@@ -64,8 +65,35 @@ mod tests {
             })
             .await
             .unwrap();
-        let _corp_token = resp.token;
+        let vanguard_token = resp.token;
         assert_eq!(sc, 200);
+        assert!(vanguard_token.len() > 10);
+
+        // Create Google Stock
+        let (sc, resp) = app
+            .clone()
+            .create_stock(&vanguard_token, CreateStockRequest {
+                stock_name: String::from("Google"),
+            })
+            .await
+            .unwrap();
+        let google_stock_id = resp.stock_id;
+        assert_eq!(sc, 200);
+
+        // Add 550 Google Stock to Vanguard
+
+        // Create Apple Stock
+        let (sc, resp) = app
+            .clone()
+            .create_stock(&vanguard_token, CreateStockRequest {
+                stock_name: String::from("Apple"),
+            })
+            .await
+            .unwrap();
+        let apple_stock_id = resp.stock_id;
+        assert_eq!(sc, 200);
+
+        // Add 350 Apple Stock to Vanguard
     }
 
     #[derive(Serialize, Deserialize)]
@@ -92,9 +120,11 @@ mod tests {
 
         async fn request<B: Serialize, R: for<'a> de::Deserialize<'a>>(
             mut self,
+            token: &String,
             request: Builder,
             payload: Option<B>,
         ) -> Result<(StatusCode, R), StatusCode> {
+            let request = request.header("token", token);
             let request = if let Some(ref p) = payload {
                 request
                     .header("Content-Type", "application/json")
@@ -124,6 +154,7 @@ mod tests {
         async fn register(self, payload: RegisterRequest) -> Result<StatusCode, StatusCode> {
             let (sc, _resp) = self
                 .request::<_, Option<i64>>(
+                    &"".to_string(),
                     Request::builder()
                         .uri("/authentication/register")
                         .method("POST"),
@@ -140,9 +171,26 @@ mod tests {
         ) -> Result<(StatusCode, TokenResponse), StatusCode> {
             let resp = self
                 .request::<_, TokenResponse>(
+                    &"".to_string(),
                     Request::builder()
                         .uri("/authentication/login")
                         .method("POST"),
+                    Some(payload),
+                )
+                .await?;
+
+            Ok(resp)
+        }
+
+        async fn create_stock(
+            self,
+            token: &String,
+            payload: CreateStockRequest,
+        ) -> Result<(StatusCode, StockId), StatusCode> {
+            let resp = self
+                .request::<_, StockId>(
+                    token,
+                    Request::builder().uri("/setup/createStock").method("POST"),
                     Some(payload),
                 )
                 .await?;

@@ -113,6 +113,23 @@ impl DB {
 
         Ok(())
     }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn create_stock(&self, stock_name: String) -> Result<i64, AppError> {
+        let stock_id = sqlx::query!(
+            "INSERT INTO stocks (stock_name) VALUES (?) RETURNING stock_id",
+            stock_name
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            error!(stock_name, "{}", &e);
+            AppError::DatabaseError
+        })?
+        .stock_id;
+
+        Ok(stock_id)
+    }
 }
 
 #[derive(Debug)]
