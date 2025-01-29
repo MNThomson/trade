@@ -6,28 +6,28 @@ use argon2::{
 };
 use axum::extract::{Json, State};
 use jsonwebtoken::{EncodingKey, encode};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use tracing::error;
 
 use crate::{
     AppState,
     auth::{Jwt, SECRET},
-    types::{ApiResponse, AppError},
+    types::{AppError, EmptyCreatedResponse, TokenResponse},
 };
 
 static JWT_EXPIRATION_SECS: u64 = 60 * 5;
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct LoginRequest {
-    user_name: String,
-    password: String,
+    pub user_name: String,
+    pub password: String,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
-) -> Result<ApiResponse, AppError> {
+) -> Result<TokenResponse, AppError> {
     let u = state.db.get_user(body.user_name).await?;
 
     hasher()
@@ -65,22 +65,22 @@ pub async fn login(
         AppError::InternalServerError
     })?;
 
-    Ok(ApiResponse::Token(token))
+    Ok(TokenResponse { token })
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct RegisterRequest {
-    user_name: String,
-    password: String,
+    pub user_name: String,
+    pub password: String,
     #[allow(unused)]
-    name: String,
+    pub name: String,
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
-) -> Result<ApiResponse, AppError> {
+) -> Result<EmptyCreatedResponse, AppError> {
     let password_hash = hasher()
         .hash_password(body.password.as_bytes(), &SaltString::generate(&mut OsRng))
         .map_err(|e| {
@@ -91,7 +91,7 @@ pub async fn register(
 
     state.db.create_user(body.user_name, password_hash).await?;
 
-    Ok(ApiResponse::NoneCreated)
+    Ok(EmptyCreatedResponse {})
 }
 
 pub fn hasher() -> Argon2<'static> {

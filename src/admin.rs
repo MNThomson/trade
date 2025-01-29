@@ -4,7 +4,7 @@ use serde::Deserialize;
 use crate::{
     AppState,
     auth::AuthUser,
-    types::{ApiResponse, AppError},
+    types::{AppError, EmptyCreatedResponse, EmptyResponse, StockId},
 };
 
 #[derive(Deserialize)]
@@ -17,9 +17,9 @@ pub async fn add_money_to_wallet(
     AuthUser(user): AuthUser,
     State(state): State<AppState>,
     Json(body): Json<AddMoneyRequest>,
-) -> Result<ApiResponse, AppError> {
+) -> Result<EmptyCreatedResponse, AppError> {
     state.db.add_money_to_user(user, body.amount).await?;
-    Ok(ApiResponse::None)
+    Ok(EmptyCreatedResponse {})
 }
 
 #[derive(Deserialize)]
@@ -32,8 +32,8 @@ pub struct AddStockToUserRequest {
 pub async fn add_stock_to_user(
     State(_state): State<AppState>,
     Json(_payload): Json<AddStockToUserRequest>,
-) -> ApiResponse {
-    ApiResponse::None
+) -> EmptyResponse {
+    EmptyResponse {}
 }
 
 #[derive(Deserialize)]
@@ -45,6 +45,8 @@ pub struct CreateStockRequest {
 pub async fn create_stock(
     State(_state): State<AppState>,
     Json(_payload): Json<CreateStockRequest>,
-) -> ApiResponse {
-    ApiResponse::StockId("your_stock_id".to_string())
+) -> StockId {
+    StockId {
+        stock_id: "stock_id".to_string(),
+    }
 }

@@ -73,49 +73,76 @@ pub struct StockTransaction {
     pub time_stamp: DateTime<Utc>,
 }
 
-#[derive(Debug)]
-pub enum ApiResponse {
-    /// No response body
-    None,
-    /// No response body with HTTP 201
-    NoneCreated,
-    /// JWT token
-    Token(String),
-    /// List of stock prices
-    StockPriceVec(Vec<StockPrice>),
-    /// List of stocks owned
-    StockPortfolioVec(Vec<StockPortfolio>),
-    /// Account balance
-    Balance(i64),
-    /// Account withdrawls/deposits
-    WalletVec(Vec<WalletTransaction>),
-    /// Stock trades
-    TradeVec(Vec<StockTransaction>),
-    /// StockID after creation
-    StockId(String),
-}
-
+/////////////////////
+/// API Responses ///
+/////////////////////
 fn success<T: Serialize>(input: &T) -> String {
     json!({ "success": true, "data": input }).to_string()
 }
 
-impl IntoResponse for ApiResponse {
-    #[tracing::instrument(fields(response_type = "ApiResponse"))]
+#[derive(Serialize, Deserialize)]
+pub struct EmptyResponse {}
+
+impl IntoResponse for EmptyResponse {
+    #[tracing::instrument(skip_all)]
     fn into_response(self) -> Response {
-        match self {
-            ApiResponse::None => (StatusCode::OK, success(&Some(()))),
-            ApiResponse::NoneCreated => (StatusCode::CREATED, success(&Some(()))),
-            ApiResponse::Token(t) => (StatusCode::OK, success(&json!({"token": t}))),
-            ApiResponse::StockPriceVec(s) => (StatusCode::OK, success(&s)),
-            ApiResponse::StockPortfolioVec(s) => (StatusCode::OK, success(&s)),
-            ApiResponse::Balance(b) => (StatusCode::OK, success(&json!({"balance": b}))),
-            ApiResponse::WalletVec(w) => (StatusCode::OK, success(&w)),
-            ApiResponse::TradeVec(t) => (StatusCode::OK, success(&t)),
-            ApiResponse::StockId(id) => (StatusCode::OK, success(&json!({"stock_id": id}))),
-        }
-        .into_response()
+        (StatusCode::OK, success(&None::<i64>)).into_response()
     }
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct EmptyCreatedResponse {}
+
+impl IntoResponse for EmptyCreatedResponse {
+    #[tracing::instrument(skip_all)]
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, success(&None::<i64>)).into_response()
+    }
+}
+macro_rules! impl_into_response {
+    ($struct_name:ident) => {
+        impl IntoResponse for $struct_name {
+            #[tracing::instrument(skip_all)]
+            fn into_response(self) -> Response {
+                (StatusCode::OK, success(&self)).into_response()
+            }
+        }
+    };
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TokenResponse {
+    pub token: String,
+}
+impl_into_response!(TokenResponse);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StockPriceVec(pub Vec<StockPrice>);
+impl_into_response!(StockPriceVec);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StockPortfolioVec(pub Vec<StockPortfolio>);
+impl_into_response!(StockPortfolioVec);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Balance {
+    pub balance: u64,
+}
+impl_into_response!(Balance);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct WalletVec(pub Vec<WalletTransaction>);
+impl_into_response!(WalletVec);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TradeVec(pub Vec<StockTransaction>);
+impl_into_response!(TradeVec);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StockId {
+    pub stock_id: String,
+}
+impl_into_response!(StockId);
 
 #[derive(Debug)]
 pub enum AppError {

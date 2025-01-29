@@ -10,27 +10,21 @@ use axum::{
 };
 use hypertext::*;
 use tower_http::catch_panic::CatchPanicLayer;
-use tracing::{error, info};
+use tracing::error;
 
-use crate::{
-    auth::AuthUser,
-    db::DB,
-    frontend::home,
-    telemetry::{otel_tracing, tracing_init},
-    types::AppState,
-};
+use crate::{auth::AuthUser, db::DB, frontend::home, telemetry::otel_tracing, types::AppState};
 
-mod admin;
-mod auth;
+pub mod admin;
+pub mod auth;
 pub mod db;
-mod frontend;
-mod hypertxt;
-mod integration;
-mod market;
-mod order;
+pub mod frontend;
+pub mod hypertxt;
+pub mod integration;
+pub mod market;
+pub mod order;
 pub mod telemetry;
 pub mod types;
-mod user;
+pub mod user;
 
 pub async fn router(state: AppState) -> Router {
     Router::new()

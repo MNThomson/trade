@@ -1,7 +1,7 @@
 use axum::extract::Json;
 use serde::Deserialize;
 
-use crate::types::{ApiResponse, OrderType};
+use crate::types::{EmptyCreatedResponse, EmptyResponse, OrderType};
 
 #[derive(Deserialize)]
 pub struct PlaceStockOrderRequest {
@@ -13,8 +13,10 @@ pub struct PlaceStockOrderRequest {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn place_stock_order(Json(_payload): Json<PlaceStockOrderRequest>) -> ApiResponse {
-    ApiResponse::None
+pub async fn place_stock_order(
+    Json(_payload): Json<PlaceStockOrderRequest>,
+) -> EmptyCreatedResponse {
+    EmptyCreatedResponse {}
 }
 
 #[derive(Deserialize)]
@@ -24,6 +26,6 @@ pub struct CancelStockTransactionRequest {
 #[tracing::instrument(skip_all)]
 pub async fn cancel_stock_transaction(
     Json(_payload): Json<CancelStockTransactionRequest>,
-) -> ApiResponse {
-    ApiResponse::None
+) -> EmptyResponse {
+    EmptyResponse {}
 }
