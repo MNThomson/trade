@@ -304,6 +304,20 @@ async fn integration() {
         .await
         .unwrap();
     assert_eq!(sc, StatusCode::CREATED);
+
+    // User1 Stock Portfolio
+    let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (
+            StatusCode::OK,
+            vec![StockPortfolio {
+                stock_id: google_stock_id.clone(),
+                stock_name: String::from("Google"),
+                quantity_owned: 10
+            },]
+        )
+    );
 }
 
 #[derive(Serialize, Deserialize)]

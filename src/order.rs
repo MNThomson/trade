@@ -34,6 +34,16 @@ pub async fn place_stock_order(
         return Ok(EmptyCreatedResponse {});
     }
 
+    state
+        .db
+        .create_buy_order(
+            user,
+            body.stock_id.parse().map_err(|_| AppError::StockNotFound)?,
+            body.quantity,
+        )
+        .await?;
+    return Ok(EmptyCreatedResponse {});
+
     Ok(EmptyCreatedResponse {})
 }
 

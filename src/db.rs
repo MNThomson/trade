@@ -218,10 +218,11 @@ impl DB {
             r#"
             SELECT s.stock_id, s.stock_name,
                 SUM(CASE
-                    WHEN o.order_status != ? AND t.buy_order = o.order_id THEN t.amount -- All buy orders that haven't failed are complete
+                    WHEN o.order_status = ? AND t.buy_order = o.order_id THEN t.amount -- All buy orders that haven't failed are complete
                     WHEN o.limit_price IS NOT NULL THEN CASE
                         WHEN o.order_status IN (?, ?, ?) THEN -o.amount
-                        ELSE -t.amount END
+                        WHEN t.sell_order = o.order_id THEN -t.amount
+                        ELSE 0 END
                     ELSE 0 END
                 ) AS "quantity_owned!: i64"
             FROM stocks s
@@ -230,7 +231,7 @@ impl DB {
             WHERE o.user_id = ?
             GROUP BY s.stock_id, s.stock_name;
            "#,
-            OrderStatus::Failed as i64,
+            OrderStatus::Completed as i64,
             OrderStatus::Completed as i64,
             OrderStatus::InProgress as i64,
             OrderStatus::PartiallyComplete as i64,
@@ -315,6 +316,70 @@ impl DB {
             error!(user_id, stock_id, quantity, "{}", &e);
             AppError::DatabaseError
         })?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn create_buy_order(
+        &self,
+        user_id: i64,
+        stock_id: i64,
+        quantity: i64,
+    ) -> Result<(), AppError> {
+        let _ = sqlx::query!(
+                    r#"
+                    BEGIN TRANSACTION;
+
+                    INSERT INTO orders (user_id, stock_id, amount, order_status) VALUES (?, ?, ?, ?);
+
+                    WITH CheapestSellOrder AS (
+                        SELECT order_id, amount, limit_price, user_id
+                        FROM orders
+                        WHERE stock_id = ? AND order_status IN (?, ?) AND user_id <> ?
+                        ORDER BY limit_price ASC, created_at ASC
+                        LIMIT 1
+                    ),
+                    BuyOrder AS (
+                        SELECT order_id
+                        FROM orders
+                        WHERE user_id = ? AND stock_id = ? AND amount = ?
+                    )
+                    INSERT INTO trades (sell_order, buy_order, amount)
+                    SELECT CheapestSellOrder.order_id, BuyOrder.order_id, ?
+                    FROM CheapestSellOrder, BuyOrder;
+
+                    WITH CheapestSellOrder AS (
+                        SELECT order_id, amount, limit_price, user_id
+                        FROM orders
+                        WHERE stock_id = ? AND order_status IN (?, ?) AND user_id <> ?
+                        ORDER BY limit_price ASC, created_at ASC
+                        LIMIT 1
+                    )
+                    UPDATE orders
+                    SET order_status = CASE WHEN amount = ? THEN ? ELSE ? END
+                    WHERE order_id = (SELECT order_id FROM CheapestSellOrder);
+
+                    COMMIT;
+            "#,
+                    user_id, stock_id, quantity, OrderStatus::Completed as i64,
+                    //
+                    stock_id, OrderStatus::InProgress as i64, OrderStatus::PartiallyComplete as i64, user_id,
+                    //
+                    user_id, stock_id, quantity,
+                    //
+                    quantity,
+                    //
+                    stock_id, OrderStatus::InProgress as i64, OrderStatus::PartiallyComplete as i64, user_id,
+                    //
+                    quantity, OrderStatus::Completed as i64, OrderStatus::PartiallyComplete as i64,
+                )
+                .execute(&self.pool)
+                .await
+                .map_err(|e| {
+                    error!(user_id, stock_id, quantity, "{}", &e);
+                    AppError::DatabaseError
+                })?;
 
         Ok(())
     }
