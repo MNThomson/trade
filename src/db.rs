@@ -191,6 +191,27 @@ impl DB {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn get_wallet_balance(&self, user_id: i64) -> Result<i64, AppError> {
+        let data = sqlx::query!(
+            r#"
+            SELECT SUM(d.amount) AS "price: i64"
+            FROM deposits d
+            WHERE d.user_id = ?
+           "#,
+            user_id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map(|i| i.price.unwrap_or(0))
+        .map_err(|e| {
+            error!("{}", &e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(data)
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn get_stock_portfolio(&self, user_id: i64) -> Result<Vec<StockPortfolio>, AppError> {
         let data = sqlx::query_as!(
             DBStockPortfolio,

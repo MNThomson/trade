@@ -17,8 +17,8 @@ use crate::{
     router,
     telemetry::tracing_init,
     types::{
-        AppState, OrderStatus, OrderType, StockId, StockPortfolio, StockPortfolioVec, StockPrice,
-        StockPriceVec, StockTransaction, TokenResponse, TradeVec,
+        AppState, Balance, OrderStatus, OrderType, StockId, StockPortfolio, StockPortfolioVec,
+        StockPrice, StockPriceVec, StockTransaction, TokenResponse, TradeVec,
     },
     user::{LoginRequest, RegisterRequest},
 };
@@ -256,6 +256,10 @@ async fn integration() {
         .await
         .unwrap();
     assert_eq!(sc, StatusCode::CREATED);
+
+    // User1 get wallet balance
+    let (sc, resp) = app.clone().get_wallet_balance(&user1_token).await.unwrap();
+    assert_eq!((sc, resp.balance), (StatusCode::OK, 10_000));
 }
 
 #[derive(Serialize, Deserialize)]
@@ -414,6 +418,18 @@ impl App {
             .request::<_, StockPortfolioVec>(
                 token,
                 Request::builder().uri("/transaction/getStockPortfolio"),
+                None::<i64>,
+            )
+            .await?;
+
+        Ok((sc, resp))
+    }
+
+    async fn get_wallet_balance(self, token: &String) -> Result<(StatusCode, Balance), StatusCode> {
+        let (sc, resp) = self
+            .request::<_, Balance>(
+                token,
+                Request::builder().uri("/transaction/getWalletBalance"),
                 None::<i64>,
             )
             .await?;

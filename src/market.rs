@@ -26,8 +26,12 @@ pub async fn get_stock_portfolio(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_wallet_balance(State(_state): State<AppState>) -> Balance {
-    Balance { balance: 100 }
+pub async fn get_wallet_balance(
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+) -> Result<Balance, AppError> {
+    let bal = state.db.get_wallet_balance(user).await?;
+    Ok(Balance { balance: bal })
 }
 
 #[tracing::instrument(skip_all)]

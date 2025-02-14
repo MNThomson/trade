@@ -141,7 +141,7 @@ impl_into_response!(StockPortfolioVec);
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Balance {
-    pub balance: u64,
+    pub balance: i64,
 }
 impl_into_response!(Balance);
 
