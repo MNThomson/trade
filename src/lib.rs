@@ -60,7 +60,10 @@ pub async fn router(state: AppState) -> Router {
             post(order::cancel_stock_transaction),
         )
         // Admin
-        .route("/transaction/addMoney", post(admin::add_money_to_wallet))
+        .route(
+            "/transaction/addMoneyToWallet",
+            post(admin::add_money_to_wallet),
+        )
         .route("/setup/addStockToUser", post(admin::add_stock_to_user))
         .route("/setup/createStock", post(admin::create_stock))
         // Misc

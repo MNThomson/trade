@@ -7,9 +7,9 @@ use crate::{
     types::{AppError, EmptyCreatedResponse, EmptyResponse, StockId},
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct AddMoneyRequest {
-    amount: i64,
+    pub amount: i64,
 }
 
 #[tracing::instrument(skip_all)]

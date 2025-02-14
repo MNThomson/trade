@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize, de};
 use tower::{Service, ServiceExt};
 
 use crate::{
-    admin::{AddStockToUserRequest, CreateStockRequest},
+    admin::{AddMoneyRequest, AddStockToUserRequest, CreateStockRequest},
     db::DB,
     order::PlaceStockOrderRequest,
     router,
@@ -248,6 +248,14 @@ async fn integration() {
             }
         ])
     );
+
+    // User1 add money
+    let sc = app
+        .clone()
+        .add_money_to_user(&user1_token, AddMoneyRequest { amount: 10_000 })
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::CREATED);
 }
 
 #[derive(Serialize, Deserialize)]
@@ -357,6 +365,24 @@ impl App {
                 token,
                 Request::builder()
                     .uri("/setup/addStockToUser")
+                    .method("POST"),
+                Some(payload),
+            )
+            .await?;
+
+        Ok(sc)
+    }
+
+    async fn add_money_to_user(
+        self,
+        token: &String,
+        payload: AddMoneyRequest,
+    ) -> Result<StatusCode, StatusCode> {
+        let (sc, _resp) = self
+            .request::<_, Option<i64>>(
+                token,
+                Request::builder()
+                    .uri("/transaction/addMoneyToWallet")
                     .method("POST"),
                 Some(payload),
             )
