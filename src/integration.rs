@@ -167,6 +167,14 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(sc, StatusCode::CREATED);
+
+        // Vanguard ensure they own no stock
+        let (sc, resp) = app
+            .clone()
+            .get_stock_portfolio(&vanguard_token)
+            .await
+            .unwrap();
+        assert_eq!((sc, resp.0), (StatusCode::OK, vec![]));
     }
 
     #[derive(Serialize, Deserialize)]

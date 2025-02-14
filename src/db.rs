@@ -155,28 +155,44 @@ impl DB {
 
     #[tracing::instrument(skip(self))]
     pub async fn get_stock_portfolio(&self, user_id: i64) -> Result<Vec<StockPortfolio>, AppError> {
-        let data = sqlx::query_as::<_, DBStockPortfolio>(
+        let data = sqlx::query_as!(
+            DBStockPortfolio,
             r#"
-            SELECT s.stock_id, s.stock_name, SUM(CASE WHEN o.order_status = 0 AND t.buy_order = o.order_id THEN t.amount
-                            WHEN o.order_status = 0 AND t.sell_order = o.order_id THEN -t.amount
-                            ELSE 0 END) AS quantity_owned
+            SELECT s.stock_id, s.stock_name,
+                SUM(CASE
+                    WHEN o.order_status != ? AND t.buy_order = o.order_id THEN t.amount -- All buy orders that haven't failed are complete
+                    WHEN o.limit_price IS NOT NULL THEN CASE
+                        WHEN o.order_status IN (?, ?, ?) THEN -o.amount
+                        ELSE -t.amount END
+                    ELSE 0 END
+                ) AS "quantity_owned!: i64"
             FROM stocks s
             LEFT JOIN orders o ON s.stock_id = o.stock_id
             LEFT JOIN trades t ON o.order_id = t.buy_order OR o.order_id = t.sell_order
             WHERE o.user_id = ?
-            GROUP BY s.stock_id, s.stock_name;"#,
+            GROUP BY s.stock_id, s.stock_name;
+           "#,
+            OrderStatus::Failed as i64,
+            OrderStatus::Completed as i64,
+            OrderStatus::InProgress as i64,
+            OrderStatus::PartiallyComplete as i64,
+            user_id
         )
-        .bind(user_id)
         .fetch_all(&self.pool)
         .await
-        .map(|p| p.iter().map(|i| StockPortfolio{
-                stock_id: i.stock_id.to_string(),
-                stock_name: i.stock_name.clone(),
-                quantity_owned: i.quantity_owned }
-            ).collect())
-        .map_err(|e|{
-                error!(user_id, "{}", &e);
-                AppError::DatabaseError
+        .map(|p| {
+            p.iter()
+                .map(|i| StockPortfolio {
+                    stock_id: i.stock_id.to_string(),
+                    stock_name: i.stock_name.clone(),
+                    quantity_owned: i.quantity_owned,
+                })
+                .filter(|i| i.quantity_owned > 0)
+                .collect()
+        })
+        .map_err(|e| {
+            error!(user_id, "{}", &e);
+            AppError::DatabaseError
         })?;
 
         Ok(data)
