@@ -287,6 +287,23 @@ async fn integration() {
     // User1 get wallet balance
     let (sc, resp) = app.clone().get_wallet_balance(&user1_token).await.unwrap();
     assert_eq!((sc, resp.balance), (StatusCode::OK, 10_000));
+
+    // User1 buy 10 Google
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &user1_token,
+            PlaceStockOrderRequest {
+                stock_id: google_stock_id.clone(),
+                is_buy: true,
+                order_type: OrderType::Market,
+                quantity: 10,
+                price: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::CREATED);
 }
 
 #[derive(Serialize, Deserialize)]
