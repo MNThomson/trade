@@ -8,6 +8,7 @@ use tracing::error;
 
 use crate::types::{
     AppError, OrderStatus, OrderType, StockPortfolio, StockPrice, StockTransaction,
+    WalletTransaction,
 };
 
 pub type DbPool = SqlitePool;
@@ -212,6 +213,45 @@ impl DB {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn get_wallet_transactions(
+        &self,
+        user_id: i64,
+    ) -> Result<Vec<WalletTransaction>, AppError> {
+        let data = sqlx::query_as!(
+            DBWalletTransaction,
+            r#"
+            SELECT t.trade_id AS wallet_tx_id, os.order_id AS stock_tx_id, (t.amount * os.limit_price) AS "amount!: i64", os.user_id AS seller_id, t.created_at AS time_stamp
+            FROM trades t
+            LEFT JOIN orders os ON os.order_id = t.sell_order
+            LEFT JOIN orders ob ON ob.order_id = t.buy_order
+            WHERE (os.user_id = ? OR ob.user_id = ?) AND os.created_at != 0 AND ob.created_at != 0
+            ORDER BY t.created_at
+           "#,
+            user_id,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|p| {
+            p.iter()
+                .map(|i| WalletTransaction {
+                        wallet_tx_id: i.wallet_tx_id.to_string(),
+                        stock_tx_id: i.stock_tx_id.to_string(),
+                        is_debit: i.seller_id.ne(&user_id),
+                        amount: i.amount,
+                        time_stamp: DateTime::from_timestamp_millis(i.time_stamp).unwrap(),
+                    })
+                .collect()
+        })
+        .map_err(|e| {
+            error!(user_id, "{}", &e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(data)
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn get_stock_portfolio(&self, user_id: i64) -> Result<Vec<StockPortfolio>, AppError> {
         let data = sqlx::query_as!(
             DBStockPortfolio,
@@ -407,6 +447,15 @@ struct DBStockPortfolio {
     stock_id: i64,
     stock_name: String,
     quantity_owned: i64,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct DBWalletTransaction {
+    wallet_tx_id: i64,
+    stock_tx_id: i64,
+    seller_id: i64,
+    amount: i64,
+    time_stamp: i64,
 }
 
 #[derive(Debug, sqlx::FromRow)]

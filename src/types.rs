@@ -38,7 +38,7 @@ pub struct WalletTransaction {
     pub stock_tx_id: String,
     pub is_debit: bool,
     #[dummy(faker = "1..10000")]
-    pub amount: usize,
+    pub amount: i64,
     pub time_stamp: DateTime<Utc>,
 }
 

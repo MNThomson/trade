@@ -1,5 +1,4 @@
 use axum::extract::State;
-use fake::{Fake, Faker};
 
 use crate::{
     AppState,
@@ -35,8 +34,12 @@ pub async fn get_wallet_balance(
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_wallet_transactions(State(_state): State<AppState>) -> WalletVec {
-    WalletVec(vec![Faker.fake(), Faker.fake()])
+pub async fn get_wallet_transactions(
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+) -> Result<WalletVec, AppError> {
+    let out = state.db.get_wallet_transactions(user).await?;
+    Ok(WalletVec(out))
 }
 
 #[tracing::instrument(skip_all)]

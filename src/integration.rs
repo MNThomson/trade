@@ -18,7 +18,8 @@ use crate::{
     telemetry::tracing_init,
     types::{
         AppState, Balance, OrderStatus, OrderType, StockId, StockPortfolio, StockPortfolioVec,
-        StockPrice, StockPriceVec, StockTransaction, TokenResponse, TradeVec,
+        StockPrice, StockPriceVec, StockTransaction, TokenResponse, TradeVec, WalletTransaction,
+        WalletVec,
     },
     user::{LoginRequest, RegisterRequest},
 };
@@ -321,10 +322,26 @@ async fn integration() {
             stock_price: 135,
             quantity: 10,
             ..
-        },]
+        }]
     );
     assert_eq!(sc, StatusCode::OK);
 
+    // User1 get wallet transactions
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_transactions(&user1_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [WalletTransaction {
+            is_debit: true,
+            amount: 1350,
+            ..
+        }]
+    );
+    assert_eq!(sc, StatusCode::OK);
     // User1 Stock Portfolio
     let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
     assert_eq!(
@@ -523,6 +540,21 @@ impl App {
             .request::<_, TradeVec>(
                 token,
                 Request::builder().uri("/transaction/getStockTransactions"),
+                None::<i64>,
+            )
+            .await?;
+
+        Ok((sc, resp))
+    }
+
+    async fn get_wallet_transactions(
+        self,
+        token: &String,
+    ) -> Result<(StatusCode, WalletVec), StatusCode> {
+        let (sc, resp) = self
+            .request::<_, WalletVec>(
+                token,
+                Request::builder().uri("/transaction/getWalletTransactions"),
                 None::<i64>,
             )
             .await?;
