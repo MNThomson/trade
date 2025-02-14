@@ -79,9 +79,12 @@ async fn integration() {
     // Create Google Stock
     let (sc, resp) = app
         .clone()
-        .create_stock(&vanguard_token, CreateStockRequest {
-            stock_name: String::from("Google"),
-        })
+        .create_stock(
+            &vanguard_token,
+            CreateStockRequest {
+                stock_name: String::from("Google"),
+            },
+        )
         .await
         .unwrap();
     let google_stock_id = resp.stock_id;
@@ -90,10 +93,13 @@ async fn integration() {
     // Add 550 Google Stock to Vanguard
     let sc = app
         .clone()
-        .add_stock_to_user(&vanguard_token, AddStockToUserRequest {
-            stock_id: google_stock_id.clone(),
-            quantity: 550,
-        })
+        .add_stock_to_user(
+            &vanguard_token,
+            AddStockToUserRequest {
+                stock_id: google_stock_id.clone(),
+                quantity: 550,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(sc, 200);
@@ -101,9 +107,12 @@ async fn integration() {
     // Create Apple Stock
     let (sc, resp) = app
         .clone()
-        .create_stock(&vanguard_token, CreateStockRequest {
-            stock_name: String::from("Apple"),
-        })
+        .create_stock(
+            &vanguard_token,
+            CreateStockRequest {
+                stock_name: String::from("Apple"),
+            },
+        )
         .await
         .unwrap();
     let apple_stock_id = resp.stock_id;
@@ -112,10 +121,13 @@ async fn integration() {
     // Add 350 Apple Stock to Vanguard
     let sc = app
         .clone()
-        .add_stock_to_user(&vanguard_token, AddStockToUserRequest {
-            stock_id: apple_stock_id.clone(),
-            quantity: 350,
-        })
+        .add_stock_to_user(
+            &vanguard_token,
+            AddStockToUserRequest {
+                stock_id: apple_stock_id.clone(),
+                quantity: 350,
+            },
+        )
         .await
         .unwrap();
     assert_eq!(sc, 200);
@@ -128,30 +140,36 @@ async fn integration() {
         .unwrap();
     assert_eq!(
         (sc, resp.0),
-        (StatusCode::OK, vec![
-            StockPortfolio {
-                stock_id: google_stock_id.clone(),
-                stock_name: String::from("Google"),
-                quantity_owned: 550
-            },
-            StockPortfolio {
-                stock_id: apple_stock_id.clone(),
-                stock_name: String::from("Apple"),
-                quantity_owned: 350
-            },
-        ])
+        (
+            StatusCode::OK,
+            vec![
+                StockPortfolio {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: String::from("Google"),
+                    quantity_owned: 550
+                },
+                StockPortfolio {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: String::from("Apple"),
+                    quantity_owned: 350
+                },
+            ]
+        )
     );
 
     // Vanguard Sell 550 Google
     let sc = app
         .clone()
-        .place_stock_order(&vanguard_token, PlaceStockOrderRequest {
-            stock_id: google_stock_id.clone(),
-            is_buy: false,
-            order_type: OrderType::Limit,
-            quantity: 550,
-            price: Some(135),
-        })
+        .place_stock_order(
+            &vanguard_token,
+            PlaceStockOrderRequest {
+                stock_id: google_stock_id.clone(),
+                is_buy: false,
+                order_type: OrderType::Limit,
+                quantity: 550,
+                price: Some(135),
+            },
+        )
         .await
         .unwrap();
     assert_eq!(sc, StatusCode::CREATED);
@@ -159,13 +177,16 @@ async fn integration() {
     // Vanguard Sell 350 Apple
     let sc = app
         .clone()
-        .place_stock_order(&vanguard_token, PlaceStockOrderRequest {
-            stock_id: apple_stock_id.clone(),
-            is_buy: false,
-            order_type: OrderType::Limit,
-            quantity: 350,
-            price: Some(140),
-        })
+        .place_stock_order(
+            &vanguard_token,
+            PlaceStockOrderRequest {
+                stock_id: apple_stock_id.clone(),
+                is_buy: false,
+                order_type: OrderType::Limit,
+                quantity: 350,
+                price: Some(140),
+            },
+        )
         .await
         .unwrap();
     assert_eq!(sc, StatusCode::CREATED);
@@ -185,26 +206,29 @@ async fn integration() {
         .await
         .unwrap();
 
-    assert_matches!(&resp.0[..], [
-        StockTransaction {
-            //stock_id: google_stock_id,
-            order_status: OrderStatus::InProgress,
-            order_type: OrderType::Limit,
-            is_buy: false,
-            stock_price: 135,
-            quantity: 550,
-            ..
-        },
-        StockTransaction {
-            //stock_id: apple_stock_id,
-            order_status: OrderStatus::InProgress,
-            order_type: OrderType::Limit,
-            is_buy: false,
-            stock_price: 140,
-            quantity: 350,
-            ..
-        }
-    ]);
+    assert_matches!(
+        &resp.0[..],
+        [
+            StockTransaction {
+                //stock_id: google_stock_id,
+                order_status: OrderStatus::InProgress,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 135,
+                quantity: 550,
+                ..
+            },
+            StockTransaction {
+                //stock_id: apple_stock_id,
+                order_status: OrderStatus::InProgress,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 140,
+                quantity: 350,
+                ..
+            }
+        ]
+    );
     assert_eq!(sc, StatusCode::OK);
 
     // User1 Register
@@ -235,18 +259,21 @@ async fn integration() {
     let (sc, resp) = app.clone().get_stock_prices(&user1_token).await.unwrap();
     assert_eq!(
         (sc, resp.0),
-        (StatusCode::OK, vec![
-            StockPrice {
-                stock_id: google_stock_id,
-                stock_name: "Google".to_string(),
-                current_price: 135
-            },
-            StockPrice {
-                stock_id: apple_stock_id,
-                stock_name: "Apple".to_string(),
-                current_price: 140
-            }
-        ])
+        (
+            StatusCode::OK,
+            vec![
+                StockPrice {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: "Google".to_string(),
+                    current_price: 135
+                },
+                StockPrice {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: "Apple".to_string(),
+                    current_price: 140
+                }
+            ]
+        )
     );
 
     // User1 add money
