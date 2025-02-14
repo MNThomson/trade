@@ -76,8 +76,7 @@ mod tests {
             .await
             .unwrap();
         let vanguard_token = resp.token;
-        assert_eq!(sc, 200);
-        assert!(vanguard_token.len() > 10);
+        assert_eq!((sc, vanguard_token.len() > 10), (StatusCode::OK, true));
 
         // Create Google Stock
         let (sc, resp) = app
@@ -209,6 +208,30 @@ mod tests {
             }
         ]);
         assert_eq!(sc, StatusCode::OK);
+
+        // User1 Register
+        let sc = app
+            .clone()
+            .register(RegisterRequest {
+                user_name: String::from("FinanceGuru"),
+                password: String::from("Fguru@2024"),
+                name: String::from("The Finance Guru"),
+            })
+            .await
+            .unwrap();
+        assert_eq!(sc, 201);
+
+        // User1 Login
+        let (sc, resp) = app
+            .clone()
+            .login(LoginRequest {
+                user_name: String::from("FinanceGuru"),
+                password: String::from("Fguru@2024"),
+            })
+            .await
+            .unwrap();
+        let user1_token = resp.token;
+        assert_eq!((sc, user1_token.len() > 10), (StatusCode::OK, true));
     }
 
     #[derive(Serialize, Deserialize)]
