@@ -20,6 +20,7 @@ pub mod auth;
 pub mod db;
 pub mod frontend;
 pub mod hypertxt;
+#[cfg(test)]
 pub mod integration;
 pub mod market;
 pub mod order;
