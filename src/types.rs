@@ -14,13 +14,13 @@ pub struct AppState {
     pub db: DB,
 }
 
-#[derive(Serialize, Deserialize, Debug, Dummy)]
+#[derive(Serialize, Deserialize, Debug, Dummy, PartialEq)]
 pub struct StockPrice {
     pub stock_id: String,
     #[dummy(faker = "CompanyName()")]
     pub stock_name: String,
     #[dummy(faker = "1..200")]
-    pub current_price: usize,
+    pub current_price: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug, Dummy, PartialEq)]

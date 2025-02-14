@@ -17,8 +17,8 @@ use crate::{
     router,
     telemetry::tracing_init,
     types::{
-        AppState, OrderStatus, OrderType, StockId, StockPortfolio, StockPortfolioVec,
-        StockTransaction, TokenResponse, TradeVec,
+        AppState, OrderStatus, OrderType, StockId, StockPortfolio, StockPortfolioVec, StockPrice,
+        StockPriceVec, StockTransaction, TokenResponse, TradeVec,
     },
     user::{LoginRequest, RegisterRequest},
 };
@@ -230,6 +230,24 @@ async fn integration() {
         .unwrap();
     let user1_token = resp.token;
     assert_eq!((sc, user1_token.len() > 10), (StatusCode::OK, true));
+
+    // Get Stock Prices
+    let (sc, resp) = app.clone().get_stock_prices(&user1_token).await.unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (StatusCode::OK, vec![
+            StockPrice {
+                stock_id: google_stock_id,
+                stock_name: "Google".to_string(),
+                current_price: 135
+            },
+            StockPrice {
+                stock_id: apple_stock_id,
+                stock_name: "Apple".to_string(),
+                current_price: 140
+            }
+        ])
+    );
 }
 
 #[derive(Serialize, Deserialize)]
@@ -345,6 +363,21 @@ impl App {
             .await?;
 
         Ok(sc)
+    }
+
+    async fn get_stock_prices(
+        self,
+        token: &String,
+    ) -> Result<(StatusCode, StockPriceVec), StatusCode> {
+        let (sc, resp) = self
+            .request::<_, StockPriceVec>(
+                token,
+                Request::builder().uri("/transaction/getStockPrices"),
+                None::<i64>,
+            )
+            .await?;
+
+        Ok((sc, resp))
     }
 
     async fn get_stock_portfolio(

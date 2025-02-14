@@ -8,8 +8,12 @@ use crate::{
 };
 
 #[tracing::instrument(skip_all)]
-pub async fn get_stock_prices(State(_state): State<AppState>) -> StockPriceVec {
-    StockPriceVec(vec![Faker.fake(), Faker.fake()])
+pub async fn get_stock_prices(
+    AuthUser(_user): AuthUser,
+    State(state): State<AppState>,
+) -> Result<StockPriceVec, AppError> {
+    let out = state.db.get_stock_prices().await?;
+    Ok(StockPriceVec(out))
 }
 
 #[tracing::instrument(skip_all)]

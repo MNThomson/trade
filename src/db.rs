@@ -6,7 +6,9 @@ use chrono::DateTime;
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use tracing::error;
 
-use crate::types::{AppError, OrderStatus, OrderType, StockPortfolio, StockTransaction};
+use crate::types::{
+    AppError, OrderStatus, OrderType, StockPortfolio, StockPrice, StockTransaction,
+};
 
 pub type DbPool = SqlitePool;
 
@@ -155,6 +157,40 @@ impl DB {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn get_stock_prices(&self) -> Result<Vec<StockPrice>, AppError> {
+        let data = sqlx::query_as!(
+            DBStockPrice,
+            r#"
+            SELECT s.stock_id AS "stock_id!: i64", s.stock_name AS "stock_name!: String", MIN(o.limit_price) AS price
+            FROM stocks s
+            JOIN orders o ON s.stock_id = o.stock_id
+            WHERE o.limit_price IS NOT NULL AND o.order_status IN (?, ?)
+            GROUP BY s.stock_id, s.stock_name
+            ORDER BY s.stock_name DESC
+           "#,
+            OrderStatus::InProgress as i64,
+            OrderStatus::PartiallyComplete as i64
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|p| {
+            p.iter()
+                .map(|i| StockPrice {
+                    stock_id: i.stock_id.to_string(),
+                    stock_name: i.stock_name.clone(),
+                    current_price: i.price.unwrap_or(0),
+                })
+                .collect()
+        })
+        .map_err(|e| {
+            error!("{}", &e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(data)
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn get_stock_portfolio(&self, user_id: i64) -> Result<Vec<StockPortfolio>, AppError> {
         let data = sqlx::query_as!(
             DBStockPortfolio,
@@ -269,6 +305,13 @@ pub struct DbUser {
     pub user_name: String,
     pub password: String,
     pub created_at: i64,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct DBStockPrice {
+    stock_id: i64,
+    stock_name: String,
+    price: Option<i64>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
