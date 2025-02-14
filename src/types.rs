@@ -42,7 +42,7 @@ pub struct WalletTransaction {
     pub time_stamp: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Dummy)]
+#[derive(Serialize, Deserialize, Debug, Dummy, PartialEq, Clone, Copy)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OrderStatus {
     Failed = -2,
@@ -52,25 +52,39 @@ pub enum OrderStatus {
     PartiallyComplete = 2,
 }
 
-#[derive(Serialize, Deserialize, Debug, Dummy)]
+impl From<i64> for OrderStatus {
+    fn from(value: i64) -> Self {
+        match value {
+            -2 => OrderStatus::Failed,
+            -1 => OrderStatus::Cancelled,
+            0 => OrderStatus::Completed,
+            1 => OrderStatus::InProgress,
+            2 => OrderStatus::PartiallyComplete,
+            _ => panic!("Invalid i64 value for OrderStatus"),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Dummy, PartialEq)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum OrderType {
     Market,
     Limit,
 }
 
-#[derive(Serialize, Deserialize, Debug, Dummy)]
+#[derive(Serialize, Deserialize, Debug, Dummy, PartialEq)]
 pub struct StockTransaction {
     pub stock_tx_id: String,
+    pub parent_stock_tx_id: Option<String>,
     pub stock_id: String,
-    pub wallet_tx_id: String,
+    pub wallet_tx_id: Option<String>,
     pub order_status: OrderStatus,
     pub is_buy: bool,
     pub order_type: OrderType,
     #[dummy(faker = "1..200")]
-    pub stock_price: usize,
+    pub stock_price: i64,
     #[dummy(faker = "1..200")]
-    pub quantity: usize,
+    pub quantity: i64,
     pub time_stamp: DateTime<Utc>,
 }
 

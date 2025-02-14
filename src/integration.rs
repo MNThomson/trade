@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use std::assert_matches::assert_matches;
+
     use axum::{
         body::Body,
         http::{self, Request, StatusCode},
@@ -16,7 +18,10 @@ mod tests {
         order::PlaceStockOrderRequest,
         router,
         telemetry::tracing_init,
-        types::{AppState, OrderType, StockId, StockPortfolio, StockPortfolioVec, TokenResponse},
+        types::{
+            AppState, OrderStatus, OrderType, StockId, StockPortfolio, StockPortfolioVec,
+            StockTransaction, TokenResponse, TradeVec,
+        },
         user::{LoginRequest, RegisterRequest},
     };
 
@@ -162,7 +167,7 @@ mod tests {
                 is_buy: false,
                 order_type: OrderType::Limit,
                 quantity: 350,
-                price: Some(135),
+                price: Some(140),
             })
             .await
             .unwrap();
@@ -175,6 +180,35 @@ mod tests {
             .await
             .unwrap();
         assert_eq!((sc, resp.0), (StatusCode::OK, vec![]));
+
+        // Vanguard get stock transactions
+        let (sc, resp) = app
+            .clone()
+            .get_stock_transactions(&vanguard_token)
+            .await
+            .unwrap();
+
+        assert_matches!(&resp.0[..], [
+            StockTransaction {
+                //stock_id: google_stock_id,
+                order_status: OrderStatus::InProgress,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 135,
+                quantity: 550,
+                ..
+            },
+            StockTransaction {
+                //stock_id: apple_stock_id,
+                order_status: OrderStatus::InProgress,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 140,
+                quantity: 350,
+                ..
+            }
+        ]);
+        assert_eq!(sc, StatusCode::OK);
     }
 
     #[derive(Serialize, Deserialize)]
@@ -303,6 +337,21 @@ mod tests {
                 .request::<_, StockPortfolioVec>(
                     token,
                     Request::builder().uri("/transaction/getStockPortfolio"),
+                    None::<i64>,
+                )
+                .await?;
+
+            Ok((sc, resp))
+        }
+
+        async fn get_stock_transactions(
+            self,
+            token: &String,
+        ) -> Result<(StatusCode, TradeVec), StatusCode> {
+            let (sc, resp) = self
+                .request::<_, TradeVec>(
+                    token,
+                    Request::builder().uri("/transaction/getStockTransactions"),
                     None::<i64>,
                 )
                 .await?;

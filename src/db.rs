@@ -2,10 +2,11 @@
 use std::fs::remove_file;
 use std::{fs::File, time::Duration};
 
+use chrono::DateTime;
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
 use tracing::error;
 
-use crate::types::{AppError, OrderStatus, StockPortfolio};
+use crate::types::{AppError, OrderStatus, OrderType, StockPortfolio, StockTransaction};
 
 pub type DbPool = SqlitePool;
 
@@ -139,8 +140,8 @@ impl DB {
         quantity: i64,
     ) -> Result<(), AppError> {
         let _ = sqlx::query!(r#"
-            INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status) VALUES (1, ?, ?, 0, ?), (?, ?, ?, NULL, ?);
-            INSERT INTO trades (sell_order, buy_order, amount) VALUES ((SELECT order_id FROM orders WHERE user_id = 1 AND amount = ?), (SELECT order_id FROM orders WHERE user_id = ? AND amount = ?), ?);"#,
+            INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status, created_at) VALUES (1, ?, ?, 0, ?, 0), (?, ?, ?, NULL, ?, 0);
+            INSERT INTO trades (sell_order, buy_order, amount, created_at) VALUES ((SELECT order_id FROM orders WHERE user_id = 1 AND amount = ?), (SELECT order_id FROM orders WHERE user_id = ? AND amount = ?), ?, 0);"#,
             stock_id, quantity, OrderStatus::Completed as i64, user_id, stock_id, quantity, OrderStatus::Completed as i64, quantity, user_id, quantity, quantity
         )
         .execute(&self.pool)
@@ -199,6 +200,47 @@ impl DB {
     }
 
     #[tracing::instrument(skip(self))]
+    pub async fn get_stock_transactions(
+        &self,
+        user_id: i64,
+    ) -> Result<Vec<StockTransaction>, AppError> {
+        let data = sqlx::query_as!(
+            DBStockTransaction,
+            r#"
+            SELECT o.order_id AS stock_tx_id, -1 AS parent_stock_tx_id, o.stock_id, o.order_status, o.limit_price AS stock_price, o.amount AS quantity, o.created_at AS time_stamp
+            FROM orders o
+            WHERE o.user_id = ? AND o.created_at != 0
+            ORDER BY o.created_at
+           "#,
+            user_id
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|p| {
+            p.iter()
+                .map(|i| StockTransaction{
+                        stock_tx_id: i.stock_tx_id.to_string(),
+                        parent_stock_tx_id: None,
+                        stock_id: i.stock_id.to_string(),
+                        wallet_tx_id: if i.parent_stock_tx_id > 0 {Some(i.stock_tx_id.to_string())} else {None},
+                        order_status: i.order_status,
+                        is_buy: i.stock_price.is_none(),
+                        order_type: if i.stock_price.is_some() {OrderType::Limit} else {OrderType::Market},
+                        stock_price: i.stock_price.unwrap_or(0),
+                        quantity: i.quantity,
+                        time_stamp: DateTime::from_timestamp_millis(i.time_stamp).unwrap(),
+                    } )
+                .collect()
+        })
+        .map_err(|e| {
+            error!(user_id, "{}", &e);
+            AppError::DatabaseError
+        })?;
+
+        Ok(data)
+    }
+
+    #[tracing::instrument(skip(self))]
     pub async fn create_sell_order(
         &self,
         user_id: i64,
@@ -234,4 +276,15 @@ struct DBStockPortfolio {
     stock_id: i64,
     stock_name: String,
     quantity_owned: i64,
+}
+
+#[derive(Debug, sqlx::FromRow)]
+struct DBStockTransaction {
+    stock_tx_id: i64,
+    parent_stock_tx_id: i64,
+    stock_id: i64,
+    order_status: OrderStatus,
+    stock_price: Option<i64>,
+    quantity: i64,
+    time_stamp: i64,
 }

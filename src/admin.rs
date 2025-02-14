@@ -51,9 +51,9 @@ pub struct CreateStockRequest {
 pub async fn create_stock(
     AuthUser(_user): AuthUser,
     State(state): State<AppState>,
-    Json(payload): Json<CreateStockRequest>,
+    Json(body): Json<CreateStockRequest>,
 ) -> Result<StockId, AppError> {
-    let stock_id = state.db.create_stock(payload.stock_name).await?.to_string();
+    let stock_id = state.db.create_stock(body.stock_name).await?.to_string();
 
     Ok(StockId { stock_id })
 }

@@ -32,6 +32,10 @@ pub async fn get_wallet_transactions(State(_state): State<AppState>) -> WalletVe
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn get_stock_transactions(State(_state): State<AppState>) -> TradeVec {
-    TradeVec(vec![Faker.fake(), Faker.fake()])
+pub async fn get_stock_transactions(
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+) -> Result<TradeVec, AppError> {
+    let out = state.db.get_stock_transactions(user).await?;
+    Ok(TradeVec(out))
 }

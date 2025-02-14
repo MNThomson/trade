@@ -44,7 +44,7 @@ pub struct CancelStockTransactionRequest {
 }
 #[tracing::instrument(skip_all)]
 pub async fn cancel_stock_transaction(
-    Json(_payload): Json<CancelStockTransactionRequest>,
+    Json(_body): Json<CancelStockTransactionRequest>,
 ) -> EmptyResponse {
     EmptyResponse {}
 }
