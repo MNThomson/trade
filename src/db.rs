@@ -195,15 +195,34 @@ impl DB {
     pub async fn get_wallet_balance(&self, user_id: i64) -> Result<i64, AppError> {
         let data = sqlx::query!(
             r#"
-            SELECT SUM(d.amount) AS "price: i64"
-            FROM deposits d
-            WHERE d.user_id = ?
+            WITH TotalDeposits AS (
+                SELECT COALESCE(SUM(d.amount), 0) AS deposits_total
+                FROM deposits d
+                WHERE d.user_id = ?
+            ),
+            TotalTrades AS (
+                SELECT COALESCE(SUM(CASE
+                    WHEN os.user_id = ? THEN t.amount * os.limit_price
+                    WHEN ob.user_id = ? AND ob.order_status <> ? THEN -t.amount * os.limit_price
+                    ELSE 0 END
+                ), 0) AS trades_total
+                FROM trades t
+                LEFT JOIN orders os ON os.order_id = t.sell_order
+                LEFT JOIN orders ob ON ob.order_id = t.buy_order
+                WHERE (os.user_id = ? OR ob.user_id = ?)
+            )
+            SELECT (deposits_total + trades_total) AS balance FROM TotalDeposits, TotalTrades;
            "#,
+            user_id,
+            user_id,
+            user_id,
+            OrderStatus::Failed as i64,
+            user_id,
             user_id
         )
         .fetch_one(&self.pool)
         .await
-        .map(|i| i.price.unwrap_or(0))
+        .map(|i| i.balance)
         .map_err(|e| {
             error!("{}", &e);
             AppError::DatabaseError

@@ -342,6 +342,11 @@ async fn integration() {
         }]
     );
     assert_eq!(sc, StatusCode::OK);
+
+    // User1 get wallet balance
+    let (sc, resp) = app.clone().get_wallet_balance(&user1_token).await.unwrap();
+    assert_eq!((sc, resp.balance), (StatusCode::OK, 8650));
+
     // User1 Stock Portfolio
     let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
     assert_eq!(
