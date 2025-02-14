@@ -42,7 +42,6 @@ pub async fn place_stock_order(
             body.quantity,
         )
         .await?;
-    return Ok(EmptyCreatedResponse {});
 
     Ok(EmptyCreatedResponse {})
 }

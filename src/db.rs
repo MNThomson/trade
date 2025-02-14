@@ -265,8 +265,10 @@ impl DB {
         let data = sqlx::query_as!(
             DBStockTransaction,
             r#"
-            SELECT o.order_id AS stock_tx_id, -1 AS parent_stock_tx_id, o.stock_id, o.order_status, o.limit_price AS stock_price, o.amount AS quantity, o.created_at AS time_stamp
+            SELECT o.order_id AS stock_tx_id, -1 AS parent_stock_tx_id, o.stock_id, o.order_status, o.limit_price AS stock_price, os.limit_price AS limit_price, o.amount AS quantity, o.created_at AS time_stamp
             FROM orders o
+            LEFT JOIN trades t ON t.buy_order = o.order_id
+            LEFT JOIN orders os ON os.order_id = t.sell_order
             WHERE o.user_id = ? AND o.created_at != 0
             ORDER BY o.created_at
            "#,
@@ -284,7 +286,7 @@ impl DB {
                         order_status: i.order_status,
                         is_buy: i.stock_price.is_none(),
                         order_type: if i.stock_price.is_some() {OrderType::Limit} else {OrderType::Market},
-                        stock_price: i.stock_price.unwrap_or(0),
+                        stock_price: i.stock_price.unwrap_or(i.limit_price.unwrap_or_else(|| {error!("Could not get price for transaction"); 0})),
                         quantity: i.quantity,
                         time_stamp: DateTime::from_timestamp_millis(i.time_stamp).unwrap(),
                     } )
@@ -414,6 +416,7 @@ struct DBStockTransaction {
     stock_id: i64,
     order_status: OrderStatus,
     stock_price: Option<i64>,
+    limit_price: Option<i64>,
     quantity: i64,
     time_stamp: i64,
 }

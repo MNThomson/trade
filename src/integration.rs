@@ -305,6 +305,26 @@ async fn integration() {
         .unwrap();
     assert_eq!(sc, StatusCode::CREATED);
 
+    // User1 get stock transactions
+    let (sc, resp) = app
+        .clone()
+        .get_stock_transactions(&user1_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [StockTransaction {
+            order_status: OrderStatus::Completed,
+            order_type: OrderType::Market,
+            is_buy: true,
+            stock_price: 135,
+            quantity: 10,
+            ..
+        },]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
     // User1 Stock Portfolio
     let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
     assert_eq!(
