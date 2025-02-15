@@ -47,9 +47,9 @@ pub async fn place_stock_order(
 }
 
 #[allow(unused)]
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct CancelStockTransactionRequest {
-    stock_tx_id: String,
+    pub stock_tx_id: String,
 }
 #[tracing::instrument(skip_all)]
 pub async fn cancel_stock_transaction(

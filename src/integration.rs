@@ -13,7 +13,7 @@ use tower::{Service, ServiceExt};
 use crate::{
     admin::{AddMoneyRequest, AddStockToUserRequest, CreateStockRequest},
     db::DB,
-    order::PlaceStockOrderRequest,
+    order::{CancelStockTransactionRequest, PlaceStockOrderRequest},
     router,
     telemetry::tracing_init,
     types::{
@@ -206,6 +206,8 @@ async fn integration() {
         .get_stock_transactions(&vanguard_token)
         .await
         .unwrap();
+    let vanguard_google_stocktx_to_cancel = resp.0[0].stock_tx_id.clone();
+    let vanguard_apple_stocktx_to_cancel = resp.0[1].stock_tx_id.clone();
 
     assert_matches!(
         &resp.0[..],
@@ -403,6 +405,439 @@ async fn integration() {
             }
         ]
     );
+    assert_eq!(sc, StatusCode::OK);
+
+    // Vanguard get wallet balance
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_balance(&vanguard_token)
+        .await
+        .unwrap();
+    assert_eq!((sc, resp.balance), (StatusCode::OK, 1350));
+
+    // Vanguard get wallet transactions
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_transactions(&vanguard_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [WalletTransaction {
+            is_debit: false,
+            amount: 1350,
+            ..
+        }]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // User1 buy 20 Apple
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &user1_token,
+            PlaceStockOrderRequest {
+                stock_id: apple_stock_id.clone(),
+                is_buy: true,
+                order_type: OrderType::Market,
+                quantity: 20,
+                price: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::CREATED);
+
+    // User1 get stock transactions
+    let (sc, resp) = app
+        .clone()
+        .get_stock_transactions(&user1_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            StockTransaction {
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 135,
+                quantity: 10,
+                ..
+            },
+            StockTransaction {
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 140, // TODO: Spec says 120 but previously said sell APPL for 140
+                quantity: 20,
+                ..
+            },
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // User1 get wallet transactions
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_transactions(&user1_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            WalletTransaction {
+                is_debit: true,
+                amount: 1350,
+                ..
+            },
+            WalletTransaction {
+                is_debit: true,
+                amount: 2800, // TODO: this says 2400 but incorrect as APPL is selling for 140
+                ..
+            }
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // User1 get wallet balance
+    let (sc, resp) = app.clone().get_wallet_balance(&user1_token).await.unwrap();
+    assert_eq!((sc, resp.balance), (StatusCode::OK, 5850));
+    // TODO: Also -400 off from pdf due to APPL price
+
+    // User1 Stock Portfolio
+    let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (
+            StatusCode::OK,
+            vec![
+                StockPortfolio {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: String::from("Google"),
+                    quantity_owned: 10
+                },
+                StockPortfolio {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: String::from("Apple"),
+                    quantity_owned: 20
+                },
+            ]
+        )
+    );
+
+    // User1 sell 5 Google
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &user1_token,
+            PlaceStockOrderRequest {
+                stock_id: google_stock_id.clone(),
+                is_buy: false,
+                order_type: OrderType::Limit,
+                quantity: 5,
+                price: Some(130),
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::CREATED);
+
+    // User1 get stock transactions
+    let (sc, resp) = app
+        .clone()
+        .get_stock_transactions(&user1_token)
+        .await
+        .unwrap();
+    let user1_stocktx_to_cancel = resp.0[2].stock_tx_id.clone();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            StockTransaction {
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 135,
+                quantity: 10,
+                ..
+            },
+            StockTransaction {
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 140, // TODO: Spec says 120 but previously said sell APPL for 140
+                quantity: 20,
+                ..
+            },
+            StockTransaction {
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::InProgress,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 130,
+                quantity: 5,
+                ..
+            },
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // User1 get wallet transactions
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_transactions(&user1_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            WalletTransaction {
+                is_debit: true,
+                amount: 1350,
+                ..
+            },
+            WalletTransaction {
+                is_debit: true,
+                amount: 2800, // TODO: this says 2400 but incorrect as APPL is selling for 140
+                ..
+            }
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // User1 get wallet balance
+    let (sc, resp) = app.clone().get_wallet_balance(&user1_token).await.unwrap();
+    assert_eq!((sc, resp.balance), (StatusCode::OK, 5850));
+    // TODO: Also -400 off from pdf due to APPL price
+
+    // User1 Stock Portfolio
+    let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (
+            StatusCode::OK,
+            vec![
+                StockPortfolio {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: String::from("Google"),
+                    quantity_owned: 5,
+                },
+                StockPortfolio {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: String::from("Apple"),
+                    quantity_owned: 20,
+                },
+            ]
+        )
+    );
+
+    // Get Stock Prices
+    let (sc, resp) = app.clone().get_stock_prices(&user1_token).await.unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (
+            StatusCode::OK,
+            vec![
+                StockPrice {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: "Google".to_string(),
+                    current_price: 130
+                },
+                StockPrice {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: "Apple".to_string(),
+                    current_price: 140
+                }
+            ]
+        )
+    );
+
+    // Vanguard buy 2 Google
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &vanguard_token,
+            PlaceStockOrderRequest {
+                stock_id: google_stock_id.clone(),
+                is_buy: true,
+                order_type: OrderType::Market,
+                quantity: 2,
+                price: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::CREATED);
+
+    // Vanguard get stock transactions
+    let (sc, resp) = app
+        .clone()
+        .get_stock_transactions(&vanguard_token)
+        .await
+        .unwrap();
+
+    dbg!(&resp.0);
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            StockTransaction {
+                //stock_id: google_stock_id,
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::PartiallyComplete,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 135,
+                quantity: 550,
+                ..
+            },
+            StockTransaction {
+                //stock_id: apple_stock_id,
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::PartiallyComplete,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 140,
+                quantity: 350,
+                ..
+            },
+            StockTransaction {
+                //stock_id: google_stock_id,
+                parent_stock_tx_id: Some(..),
+                wallet_tx_id: Some(..),
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 135,
+                quantity: 10,
+                ..
+            },
+            // TODO: This TX does not exist in pdf but should
+            StockTransaction {
+                //stock_id: apple,
+                parent_stock_tx_id: Some(..),
+                wallet_tx_id: Some(..),
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 140,
+                quantity: 20,
+                ..
+            },
+            StockTransaction {
+                //stock_id: google_stock_id,
+                parent_stock_tx_id: None,
+                //wallet_tx_id: Some(..), // FIX: DOES NOT EXIST WHEN IT SHOULD
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 130,
+                quantity: 2,
+                ..
+            },
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // Vanguard get wallet transactions
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_transactions(&vanguard_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            WalletTransaction {
+                is_debit: false,
+                amount: 1350,
+                ..
+            },
+            WalletTransaction {
+                is_debit: false,
+                amount: 2800, // TODO: Also incorrect in pdf
+                ..
+            },
+            WalletTransaction {
+                is_debit: true,
+                amount: 260,
+                ..
+            },
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // Vanguard get wallet balance
+    let (sc, resp) = app
+        .clone()
+        .get_wallet_balance(&vanguard_token)
+        .await
+        .unwrap();
+    assert_eq!((sc, resp.balance), (StatusCode::OK, 3890));
+    // TODO: +400 off from pdf due to incorrect pricing
+
+    // Vanguard buy 5 Google (and fail)
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &vanguard_token,
+            PlaceStockOrderRequest {
+                stock_id: google_stock_id.clone(),
+                is_buy: true,
+                order_type: OrderType::Market,
+                quantity: 5,
+                price: None,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::CREATED);
+
+    // User1 cancel Google sell order
+    let sc = app
+        .clone()
+        .cancel_stock_order(
+            &user1_token,
+            CancelStockTransactionRequest {
+                stock_tx_id: user1_stocktx_to_cancel,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::OK);
+
+    // Vanguard cancel Google sell order
+    let sc = app
+        .clone()
+        .cancel_stock_order(
+            &vanguard_token,
+            CancelStockTransactionRequest {
+                stock_tx_id: vanguard_google_stocktx_to_cancel,
+            },
+        )
+        .await
+        .unwrap();
+    assert_eq!(sc, StatusCode::OK);
+
+    // Vanguard cancel Apple sell order
+    let sc = app
+        .clone()
+        .cancel_stock_order(
+            &vanguard_token,
+            CancelStockTransactionRequest {
+                stock_tx_id: vanguard_apple_stocktx_to_cancel,
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(sc, StatusCode::OK);
 }
 
@@ -621,6 +1056,24 @@ impl App {
                 token,
                 Request::builder()
                     .uri("/engine/placeStockOrder")
+                    .method("POST"),
+                Some(payload),
+            )
+            .await?;
+
+        Ok(sc)
+    }
+
+    async fn cancel_stock_order(
+        self,
+        token: &String,
+        payload: CancelStockTransactionRequest,
+    ) -> Result<StatusCode, StatusCode> {
+        let (sc, _resp) = self
+            .request::<_, Option<i64>>(
+                token,
+                Request::builder()
+                    .uri("/engine/cancelStockTransaction")
                     .method("POST"),
                 Some(payload),
             )

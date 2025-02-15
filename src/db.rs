@@ -355,7 +355,7 @@ impl DB {
                         order_status: i.order_status,
                         is_buy: i.stock_price.is_none(),
                         order_type: if i.stock_price.is_some() {OrderType::Limit} else {OrderType::Market},
-                        stock_price: i.stock_price.unwrap_or(i.limit_price.unwrap_or_else(|| {error!("Could not get price for transaction"); 0})),
+                        stock_price: i.stock_price.unwrap_or_else(|| i.limit_price.expect("either stock_price or limit_price to exist")),
                         quantity: i.quantity,
                         time_stamp: DateTime::from_timestamp_millis(i.time_stamp).unwrap(),
                     } )
