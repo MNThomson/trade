@@ -324,22 +324,32 @@ impl DB {
         let data = sqlx::query_as!(
             DBStockTransaction,
             r#"
-            SELECT o.order_id AS stock_tx_id, -1 AS parent_stock_tx_id, o.stock_id, o.order_status, o.limit_price AS stock_price, os.limit_price AS limit_price, o.amount AS quantity, o.created_at AS time_stamp
+            SELECT o.order_id AS stock_tx_id, -1 AS parent_stock_tx_id, o.stock_id AS stock_id, o.order_status AS "order_status!: i64", o.limit_price AS stock_price, os.limit_price AS limit_price, o.amount AS quantity, o.created_at AS time_stamp
             FROM orders o
             LEFT JOIN trades t ON t.buy_order = o.order_id
             LEFT JOIN orders os ON os.order_id = t.sell_order
             WHERE o.user_id = ? AND o.created_at != 0
-            ORDER BY o.created_at
+            UNION ALL
+            SELECT t.trade_id AS stock_tx_id, os.order_id AS parent_stock_tx_id, os.stock_id, ? AS order_status, os.limit_price AS stock_price, 0 AS limit_price, t.amount AS quantity, t.created_at AS time_stamp
+            FROM trades t
+            JOIN orders ob ON ob.order_id = t.buy_order
+            JOIN orders os ON os.order_id = t.sell_order
+            WHERE (os.user_id = ? OR ob.user_id = ?) AND t.created_at != 0 AND (t.amount != ob.amount OR ob.user_id != ?)
+            ORDER BY t.created_at
            "#,
+            user_id,
+            OrderStatus::Completed as i64,
+            user_id,
+            user_id,
             user_id
-        )
-        .fetch_all(&self.pool)
+        ).
+        fetch_all(&self.pool)
         .await
         .map(|p| {
             p.iter()
                 .map(|i| StockTransaction{
                         stock_tx_id: i.stock_tx_id.to_string(),
-                        parent_stock_tx_id: None,
+                        parent_stock_tx_id: if i.parent_stock_tx_id>0 {Some(i.parent_stock_tx_id.to_string())} else {None},
                         stock_id: i.stock_id.to_string(),
                         wallet_tx_id: if i.parent_stock_tx_id > 0 {Some(i.stock_tx_id.to_string())} else {None},
                         order_status: i.order_status,
