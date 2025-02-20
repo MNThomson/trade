@@ -9,6 +9,10 @@ license = "AGPLv3"
 repository = "https://github.com/MNThomson/trade"
 version = "0.0.0"
 
+[[bin]]
+name = "trade"
+path = "src/main.rs"
+
 [dependencies]
 argon2 = "0.5.3"
 axum = { version = "0.7", features = ["macros"] }
@@ -24,7 +28,6 @@ jsonwebtoken = "9.3.0"
 opentelemetry = { version = "0.21", features = ["metrics"] }
 opentelemetry-otlp = { version = "0.14", features = ["metrics", "tls-roots", "tonic"] }
 opentelemetry_sdk = { version = "0.21", features = ["rt-tokio"] }
-rustc_version = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1.0.33" }
 sqlx = { version = "0.8", features = ["chrono", "macros", "runtime-tokio", "sqlite"] }
@@ -44,6 +47,7 @@ tower = { version = "0.4", features = ["util"] }
 
 [build-dependencies]
 rusqlite.version = "0.32.1"
+rustc_version.version = "0.4"
 
 [profile.release]
 codegen-units = 1

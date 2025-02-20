@@ -1,6 +1,6 @@
 #[cfg(debug_assertions)]
 use std::fs::remove_file;
-use std::{fs::File, time::Duration};
+use std::{fs::File, path::Path, time::Duration};
 
 use chrono::DateTime;
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
@@ -34,6 +34,7 @@ impl DB {
             let _ = remove_file(format!("{}-shm", PATH));
             let _ = remove_file(format!("{}-wal", PATH));
         }
+        let should_init = !Path::new(PATH).exists();
 
         File::open(PATH).or_else(|_| File::create(PATH)).unwrap();
         let db = DB {
@@ -45,8 +46,9 @@ impl DB {
                 .unwrap(),
         };
 
-        #[cfg(debug_assertions)]
-        let _ = sqlx::query(INIT_SQL).execute(&db.pool).await;
+        if should_init {
+            let _ = sqlx::query(INIT_SQL).execute(&db.pool).await;
+        }
 
         Ok(db)
     }

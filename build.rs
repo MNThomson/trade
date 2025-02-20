@@ -1,6 +1,7 @@
 use std::{fs, path::Path, process::Command};
 
 use rusqlite::Connection;
+use rustc_version::version;
 
 fn main() {
     // Embed git hash
@@ -14,6 +15,12 @@ fn main() {
             String::from("")
         };
         println!("cargo:rustc-env=GIT_HASH={}", git_hash);
+    }
+
+    // Add Rustc version
+    {
+        let ver = version().unwrap().to_string();
+        println!("cargo:rustc-env=RUSTC_VERSION={}", ver);
     }
 
     // Setup DB to sqlx

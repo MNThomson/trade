@@ -1,4 +1,5 @@
 #![feature(assert_matches)]
+#![feature(duration_constructors)]
 use std::any::Any;
 
 use axum::{
