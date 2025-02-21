@@ -14,7 +14,7 @@ use hypertext::*;
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::error;
 
-use crate::{auth::AuthUser, db::DB, frontend::home, telemetry::otel_tracing, types::AppState};
+use crate::{db::DB, frontend::home, telemetry::otel_tracing, types::AppState};
 
 pub mod admin;
 pub mod auth;
@@ -68,17 +68,11 @@ pub async fn router(state: AppState) -> Router {
         .route("/setup/addStockToUser", post(admin::add_stock_to_user))
         .route("/setup/createStock", post(admin::create_stock))
         // Misc
-        .route("/protected", get(protected))
         .layer(otel_tracing())
         .route("/health", get(healthcheck))
         .with_state(state)
         .route("/version", get(|| async { env!("GIT_HASH") }))
         .layer(CatchPanicLayer::custom(handle_panic))
-}
-
-#[tracing::instrument(skip(user))]
-async fn protected(AuthUser(user): AuthUser) -> impl IntoResponse {
-    user.to_string()
 }
 
 async fn healthcheck(State(state): State<AppState>) -> impl IntoResponse {
