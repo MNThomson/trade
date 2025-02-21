@@ -732,7 +732,7 @@ async fn integration() {
             StockTransaction {
                 //stock_id: google_stock_id,
                 parent_stock_tx_id: None,
-                //wallet_tx_id: Some(..), // FIX: DOES NOT EXIST WHEN IT SHOULD
+                wallet_tx_id: Some(..),
                 order_status: OrderStatus::Completed,
                 order_type: OrderType::Market,
                 is_buy: true,
@@ -893,7 +893,7 @@ async fn integration() {
             StockTransaction {
                 //stock_id: google_stock_id,
                 parent_stock_tx_id: None,
-                //wallet_tx_id: Some(..), // FIX: DOES NOT EXIST WHEN IT SHOULD
+                wallet_tx_id: Some(..),
                 order_status: OrderStatus::Completed,
                 order_type: OrderType::Market,
                 is_buy: true,
