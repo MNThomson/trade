@@ -18,6 +18,9 @@ pub async fn add_money_to_wallet(
     State(state): State<AppState>,
     Json(body): Json<AddMoneyRequest>,
 ) -> Result<EmptyCreatedResponse, AppError> {
+    if body.amount < 0 {
+        return Err(AppError::BadRequest);
+    }
     state.db.add_money_to_user(user, body.amount).await?;
     Ok(EmptyCreatedResponse {})
 }

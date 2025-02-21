@@ -434,7 +434,7 @@ impl DB {
             AppError::DatabaseError
         })?
         .amount;
-        // Not enough sell orders to furfill this buy order
+        // Not enough sell orders to fulfill this buy order
         if num < quantity {
             return Ok(());
         }

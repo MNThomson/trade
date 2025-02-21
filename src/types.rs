@@ -168,6 +168,7 @@ pub enum AppError {
     AuthTokenNotPresent,
     StockNotFound,
     StockTransactionNotFound,
+    BadRequest,
     /// Generic DB error that is irrecoverable. Required: `error!()`
     DatabaseError,
     /// Error that should not happen/be possible. Required: `error!()`
@@ -189,6 +190,7 @@ impl IntoResponse for AppError {
                 StatusCode::BAD_REQUEST,
                 error("Username/Password combination incorrect"),
             ),
+            AppError::BadRequest => (StatusCode::BAD_REQUEST, error("Bad request")),
             AppError::AuthTokenNotPresent => (
                 StatusCode::UNAUTHORIZED,
                 error("Authorization token not present"),

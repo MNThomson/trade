@@ -904,6 +904,177 @@ async fn integration() {
         ]
     );
     assert_eq!(sc, StatusCode::OK);
+
+    // Get Vanguard Stock Portfolio
+    let (sc, resp) = app
+        .clone()
+        .get_stock_portfolio(&vanguard_token)
+        .await
+        .unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (
+            StatusCode::OK,
+            vec![
+                StockPortfolio {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: String::from("Google"),
+                    quantity_owned: 542
+                },
+                StockPortfolio {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: String::from("Apple"),
+                    quantity_owned: 330
+                },
+            ]
+        )
+    );
+
+    // User1 get stock transactions
+    let (sc, resp) = app
+        .clone()
+        .get_stock_transactions(&user1_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            StockTransaction {
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 135,
+                quantity: 10,
+                ..
+            },
+            StockTransaction {
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 140, // TODO: Spec says 120 but previously said sell APPL for 140
+                quantity: 20,
+                ..
+            },
+            StockTransaction {
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Cancelled,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 130,
+                quantity: 5,
+                ..
+            },
+            StockTransaction {
+                parent_stock_tx_id: Some(..),
+                wallet_tx_id: Some(..),
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 130,
+                quantity: 2,
+                ..
+            },
+        ]
+    );
+    assert_eq!(sc, StatusCode::OK);
+
+    // User1 Stock Portfolio
+    let (sc, resp) = app.clone().get_stock_portfolio(&user1_token).await.unwrap();
+    assert_eq!(
+        (sc, resp.0),
+        (
+            StatusCode::OK,
+            vec![
+                StockPortfolio {
+                    stock_id: google_stock_id.clone(),
+                    stock_name: String::from("Google"),
+                    quantity_owned: 8,
+                },
+                StockPortfolio {
+                    stock_id: apple_stock_id.clone(),
+                    stock_name: String::from("Apple"),
+                    quantity_owned: 20,
+                },
+            ]
+        )
+    );
+
+    // Invalid token get stock portfolio
+    let sc = app
+        .clone()
+        .get_stock_portfolio(&String::from("asdasda"))
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::UNAUTHORIZED);
+
+    // Invalid token get wallet transaction
+    let sc = app
+        .clone()
+        .get_wallet_transactions(&String::from("asdasda"))
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::UNAUTHORIZED);
+
+    // Invalid token get wallet transaction
+    let sc = app
+        .clone()
+        .get_stock_transactions(&String::from("asdasda"))
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::UNAUTHORIZED);
+
+    // User1 add invalid money
+    let sc = app
+        .clone()
+        .add_money_to_user(&user1_token, AddMoneyRequest { amount: -10_000 })
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::BAD_REQUEST);
+
+    // User1 invalid buy
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &user1_token,
+            PlaceStockOrderRequest {
+                stock_id: apple_stock_id.clone(),
+                is_buy: true,
+                order_type: OrderType::Market,
+                quantity: 20,
+                price: Some(80),
+            },
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::BAD_REQUEST);
+
+    // Invalid user add money
+    let sc = app
+        .clone()
+        .add_money_to_user(&String::from("ASDASDSAD"), AddMoneyRequest { amount: -100 })
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::UNAUTHORIZED);
+
+    // Invalid user buy
+    let sc = app
+        .clone()
+        .place_stock_order(
+            &String::from("DSFDSFFDS"),
+            PlaceStockOrderRequest {
+                stock_id: apple_stock_id.clone(),
+                is_buy: true,
+                order_type: OrderType::Market,
+                quantity: 20,
+                price: None,
+            },
+        )
+        .await
+        .unwrap_err();
+    assert_eq!(sc, StatusCode::UNAUTHORIZED);
 }
 
 #[derive(Serialize, Deserialize)]

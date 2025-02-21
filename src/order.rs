@@ -21,6 +21,11 @@ pub async fn place_stock_order(
     State(state): State<AppState>,
     Json(body): Json<PlaceStockOrderRequest>,
 ) -> Result<EmptyCreatedResponse, AppError> {
+    if !(body.is_buy && matches!(body.order_type, OrderType::Market) && body.price.is_none()
+        || (!body.is_buy && matches!(body.order_type, OrderType::Limit) && body.price.is_some()))
+    {
+        return Err(AppError::BadRequest);
+    }
     if !body.is_buy {
         state
             .db
