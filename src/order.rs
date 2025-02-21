@@ -51,9 +51,21 @@ pub async fn place_stock_order(
 pub struct CancelStockTransactionRequest {
     pub stock_tx_id: String,
 }
+
 #[tracing::instrument(skip_all)]
 pub async fn cancel_stock_transaction(
-    Json(_body): Json<CancelStockTransactionRequest>,
-) -> EmptyResponse {
-    EmptyResponse {}
+    AuthUser(user): AuthUser,
+    State(state): State<AppState>,
+    Json(body): Json<CancelStockTransactionRequest>,
+) -> Result<EmptyResponse, AppError> {
+    state
+        .db
+        .cancel_sell_order(
+            user,
+            body.stock_tx_id
+                .parse()
+                .map_err(|_| AppError::StockTransactionNotFound)?,
+        )
+        .await?;
+    Ok(EmptyResponse {})
 }

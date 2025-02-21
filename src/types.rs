@@ -60,7 +60,7 @@ impl From<i64> for OrderStatus {
             0 => OrderStatus::Completed,
             1 => OrderStatus::InProgress,
             2 => OrderStatus::PartiallyComplete,
-            _ => panic!("Invalid i64 value for OrderStatus"),
+            _ => unreachable!("Invalid i64 value for OrderStatus"),
         }
     }
 }
@@ -167,6 +167,7 @@ pub enum AppError {
     AuthTokenInvalid,
     AuthTokenNotPresent,
     StockNotFound,
+    StockTransactionNotFound,
     /// Generic DB error that is irrecoverable. Required: `error!()`
     DatabaseError,
     /// Error that should not happen/be possible. Required: `error!()`
@@ -182,10 +183,10 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         match self {
             AppError::UsernameAlreadyTaken => {
-                (StatusCode::CONFLICT, error("Username already taken"))
+                (StatusCode::BAD_REQUEST, error("Username already taken"))
             }
             AppError::PasswordInvalid | AppError::UserNotFound => (
-                StatusCode::UNAUTHORIZED,
+                StatusCode::BAD_REQUEST,
                 error("Username/Password combination incorrect"),
             ),
             AppError::AuthTokenNotPresent => (
@@ -196,7 +197,11 @@ impl IntoResponse for AppError {
                 StatusCode::UNAUTHORIZED,
                 error("Authorization token not valid"),
             ),
-            AppError::StockNotFound => (StatusCode::NOT_FOUND, error("Stock not found")),
+            AppError::StockNotFound => (StatusCode::BAD_REQUEST, error("Stock not found")),
+            AppError::StockTransactionNotFound => (
+                StatusCode::BAD_REQUEST,
+                error("Stock transaction not found"),
+            ),
             AppError::DatabaseError => (StatusCode::INTERNAL_SERVER_ERROR, error("")),
             AppError::InternalServerError => (StatusCode::INTERNAL_SERVER_ERROR, error("")),
         }

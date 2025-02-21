@@ -52,7 +52,7 @@ async fn integration() {
         })
         .await
         .unwrap_err();
-    assert_eq!(sc, 409);
+    assert_eq!(sc, 400);
 
     // Vanguard Incorrect Password Login
     let sc = app
@@ -63,7 +63,7 @@ async fn integration() {
         })
         .await
         .unwrap_err();
-    assert_eq!(sc, 401);
+    assert_eq!(sc, 400);
 
     // Vanguard Login
     let (sc, resp) = app
@@ -683,8 +683,6 @@ async fn integration() {
         .await
         .unwrap();
 
-    dbg!(&resp.0);
-
     assert_matches!(
         &resp.0[..],
         [
@@ -838,6 +836,73 @@ async fn integration() {
         )
         .await
         .unwrap();
+    assert_eq!(sc, StatusCode::OK);
+
+    // Vanguard get stock transactions
+    let (sc, resp) = app
+        .clone()
+        .get_stock_transactions(&vanguard_token)
+        .await
+        .unwrap();
+
+    assert_matches!(
+        &resp.0[..],
+        [
+            StockTransaction {
+                //stock_id: google_stock_id,
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Cancelled,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 135,
+                quantity: 550,
+                ..
+            },
+            StockTransaction {
+                //stock_id: apple_stock_id,
+                parent_stock_tx_id: None,
+                order_status: OrderStatus::Cancelled,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 140,
+                quantity: 350,
+                ..
+            },
+            StockTransaction {
+                //stock_id: google_stock_id,
+                parent_stock_tx_id: Some(..),
+                wallet_tx_id: Some(..),
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 135,
+                quantity: 10,
+                ..
+            },
+            StockTransaction {
+                //stock_id: apple,
+                parent_stock_tx_id: Some(..),
+                wallet_tx_id: Some(..),
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Limit,
+                is_buy: false,
+                stock_price: 140,
+                quantity: 20,
+                ..
+            },
+            StockTransaction {
+                //stock_id: google_stock_id,
+                parent_stock_tx_id: None,
+                //wallet_tx_id: Some(..), // FIX: DOES NOT EXIST WHEN IT SHOULD
+                order_status: OrderStatus::Completed,
+                order_type: OrderType::Market,
+                is_buy: true,
+                stock_price: 130,
+                quantity: 2,
+                ..
+            },
+        ]
+    );
     assert_eq!(sc, StatusCode::OK);
 }
 

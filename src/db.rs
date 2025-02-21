@@ -400,6 +400,45 @@ impl DB {
         stock_id: i64,
         quantity: i64,
     ) -> Result<(), AppError> {
+        let num = sqlx::query!(
+            r#"
+            WITH sold AS (
+                SELECT COALESCE(SUM(o.amount),0) AS amount
+                FROM trades t
+                JOIN orders o ON t.sell_order = o.order_id
+                WHERE o.user_id != ? AND o.stock_id = ? AND o.order_status IN (?,?)
+            ),
+
+            offered AS (
+                SELECT COALESCE(SUM(o.amount),0) AS amount
+                FROM orders o
+                WHERE o.limit_price IS NOT NULL AND o.user_id != ? AND o.stock_id = ? AND o.order_status IN (?, ?)
+            )
+
+            SELECT (offered.amount - sold.amount) as amount FROM sold, offered;
+            "#,
+            user_id,
+            stock_id,
+            OrderStatus::InProgress as i64,
+            OrderStatus::PartiallyComplete as i64,
+            //
+            user_id,
+            stock_id,
+            OrderStatus::InProgress as i64,
+            OrderStatus::PartiallyComplete as i64,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| {
+            error!(user_id, stock_id, quantity, "{}", &e);
+            AppError::DatabaseError
+        })?
+        .amount;
+        // Not enough sell orders to furfill this buy order
+        if num < quantity {
+            return Ok(());
+        }
+
         let _ = sqlx::query!(
                     r#"
                     BEGIN TRANSACTION;
@@ -453,6 +492,28 @@ impl DB {
                     error!(user_id, stock_id, quantity, "{}", &e);
                     AppError::DatabaseError
                 })?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn cancel_sell_order(&self, user_id: i64, stock_tx_id: i64) -> Result<(), AppError> {
+        let _ = sqlx::query!(
+            r#"
+            UPDATE orders SET order_status = ? WHERE order_id = ? AND user_id = ? AND limit_price IS NOT NULL AND order_status > 0 RETURNING order_id;
+            "#,
+            OrderStatus::Cancelled as i64,
+            stock_tx_id,
+            user_id,
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| {
+            error!(user_id, stock_tx_id, "{}", &e);
+            AppError::DatabaseError
+        })?
+        .map(|i| i.order_id)
+        .ok_or(AppError::StockTransactionNotFound)?;
 
         Ok(())
     }
