@@ -445,58 +445,67 @@ impl DB {
         }
 
         let _ = sqlx::query!(
-                    r#"
-                    BEGIN TRANSACTION;
+            r#"
+            INSERT INTO orders (user_id, stock_id, amount, order_status) VALUES (?, ?, ?, ?);
 
-                    INSERT INTO orders (user_id, stock_id, amount, order_status) VALUES (?, ?, ?, ?);
+            WITH CheapestSellOrder AS (
+                SELECT order_id, amount, limit_price, user_id
+                FROM orders
+                WHERE stock_id = ? AND order_status IN (?, ?) AND user_id <> ?
+                ORDER BY limit_price ASC, created_at ASC
+                LIMIT 1
+            ),
+            BuyOrder AS (
+                SELECT order_id
+                FROM orders
+                WHERE user_id = ? AND stock_id = ? AND amount = ?
+            )
+            INSERT INTO trades (sell_order, buy_order, amount)
+            SELECT CheapestSellOrder.order_id, BuyOrder.order_id, ?
+            FROM CheapestSellOrder, BuyOrder;
 
-                    WITH CheapestSellOrder AS (
-                        SELECT order_id, amount, limit_price, user_id
-                        FROM orders
-                        WHERE stock_id = ? AND order_status IN (?, ?) AND user_id <> ?
-                        ORDER BY limit_price ASC, created_at ASC
-                        LIMIT 1
-                    ),
-                    BuyOrder AS (
-                        SELECT order_id
-                        FROM orders
-                        WHERE user_id = ? AND stock_id = ? AND amount = ?
-                    )
-                    INSERT INTO trades (sell_order, buy_order, amount)
-                    SELECT CheapestSellOrder.order_id, BuyOrder.order_id, ?
-                    FROM CheapestSellOrder, BuyOrder;
-
-                    WITH CheapestSellOrder AS (
-                        SELECT order_id, amount, limit_price, user_id
-                        FROM orders
-                        WHERE stock_id = ? AND order_status IN (?, ?) AND user_id <> ?
-                        ORDER BY limit_price ASC, created_at ASC
-                        LIMIT 1
-                    )
-                    UPDATE orders
-                    SET order_status = CASE WHEN amount = ? THEN ? ELSE ? END
-                    WHERE order_id = (SELECT order_id FROM CheapestSellOrder);
-
-                    COMMIT;
-            "#,
-                    user_id, stock_id, quantity, OrderStatus::Completed as i64,
-                    //
-                    stock_id, OrderStatus::InProgress as i64, OrderStatus::PartiallyComplete as i64, user_id,
-                    //
-                    user_id, stock_id, quantity,
-                    //
-                    quantity,
-                    //
-                    stock_id, OrderStatus::InProgress as i64, OrderStatus::PartiallyComplete as i64, user_id,
-                    //
-                    quantity, OrderStatus::Completed as i64, OrderStatus::PartiallyComplete as i64,
-                )
-                .execute(&self.pool)
-                .await
-                .map_err(|e| {
-                    error!(user_id, stock_id, quantity, "{}", &e);
-                    AppError::DatabaseError
-                })?;
+            WITH CheapestSellOrder AS (
+                SELECT order_id, amount, limit_price, user_id
+                FROM orders
+                WHERE stock_id = ? AND order_status IN (?, ?) AND user_id <> ?
+                ORDER BY limit_price ASC, created_at ASC
+                LIMIT 1
+            )
+            UPDATE orders
+            SET order_status = CASE WHEN amount = ? THEN ? ELSE ? END
+            WHERE order_id = (SELECT order_id FROM CheapestSellOrder);
+    "#,
+            user_id,
+            stock_id,
+            quantity,
+            OrderStatus::Completed as i64,
+            //
+            stock_id,
+            OrderStatus::InProgress as i64,
+            OrderStatus::PartiallyComplete as i64,
+            user_id,
+            //
+            user_id,
+            stock_id,
+            quantity,
+            //
+            quantity,
+            //
+            stock_id,
+            OrderStatus::InProgress as i64,
+            OrderStatus::PartiallyComplete as i64,
+            user_id,
+            //
+            quantity,
+            OrderStatus::Completed as i64,
+            OrderStatus::PartiallyComplete as i64,
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| {
+            error!(user_id, stock_id, quantity, "{}", &e);
+            AppError::DatabaseError
+        })?;
 
         Ok(())
     }
