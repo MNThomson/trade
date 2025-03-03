@@ -4,7 +4,7 @@ use std::{fs::File, path::Path, time::Duration};
 
 use chrono::DateTime;
 use sqlx::{SqlitePool, sqlite::SqlitePoolOptions};
-use tracing::error;
+use tracing::{error, info};
 
 use crate::types::{
     AppError, OrderStatus, OrderType, StockPortfolio, StockPrice, StockTransaction,
@@ -48,6 +48,7 @@ impl DB {
 
         if should_init {
             let _ = sqlx::query(INIT_SQL).execute(&db.pool).await;
+            info!("Seeding database");
         }
 
         Ok(db)
@@ -61,7 +62,7 @@ impl DB {
         if row.0 == 1 { Ok(()) } else { Err(()) }
     }
 
-    #[tracing::instrument(skip(self, password))]
+    #[tracing::instrument(skip(self, password), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn create_user(&self, user_name: String, password: String) -> Result<(), AppError> {
         let res = sqlx::query!(
             "INSERT INTO users (user_name, password) VALUES (?, ?)",
@@ -84,7 +85,7 @@ impl DB {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "SELECT"))]
     pub async fn get_user(&self, user_name: String) -> Result<DbUser, AppError> {
         let row = sqlx::query_as!(DbUser, "SELECT * FROM users WHERE user_name = ?", user_name)
             .fetch_one(&self.pool)
@@ -100,7 +101,7 @@ impl DB {
         Ok(row)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn add_money_to_user(&self, user_id: i64, amount: i64) -> Result<(), AppError> {
         let _row = sqlx::query!(
             "INSERT INTO deposits (user_id, amount) VALUES (?, ?)",
@@ -120,7 +121,7 @@ impl DB {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn create_stock(&self, stock_name: String) -> Result<i64, AppError> {
         let stock_id = sqlx::query!(
             "INSERT INTO stocks (stock_name) VALUES (?) RETURNING stock_id",
@@ -137,7 +138,7 @@ impl DB {
         Ok(stock_id)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn add_stock_to_user(
         &self,
         user_id: i64,
@@ -159,7 +160,7 @@ impl DB {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "SELECT"))]
     pub async fn get_stock_prices(&self) -> Result<Vec<StockPrice>, AppError> {
         let data = sqlx::query_as!(
             DBStockPrice,
@@ -193,7 +194,7 @@ impl DB {
         Ok(data)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "SELECT"))]
     pub async fn get_wallet_balance(&self, user_id: i64) -> Result<i64, AppError> {
         let data = sqlx::query!(
             r#"
@@ -233,7 +234,7 @@ impl DB {
         Ok(data)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "SELECT"))]
     pub async fn get_wallet_transactions(
         &self,
         user_id: i64,
@@ -273,7 +274,7 @@ impl DB {
         Ok(data)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "SELECT"))]
     pub async fn get_stock_portfolio(&self, user_id: i64) -> Result<Vec<StockPortfolio>, AppError> {
         let data = sqlx::query_as!(
             DBStockPortfolio,
@@ -319,7 +320,7 @@ impl DB {
         Ok(data)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "SELECT"))]
     pub async fn get_stock_transactions(
         &self,
         user_id: i64,
@@ -376,7 +377,7 @@ impl DB {
         Ok(data)
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn create_sell_order(
         &self,
         user_id: i64,
@@ -398,7 +399,7 @@ impl DB {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn create_buy_order(
         &self,
         user_id: i64,
@@ -510,7 +511,7 @@ impl DB {
         Ok(())
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self), fields(service.name = "db", db.operation.name = "INSERT"))]
     pub async fn cancel_sell_order(&self, user_id: i64, stock_tx_id: i64) -> Result<(), AppError> {
         // TODO: The TA provided tests fail when the user_id is verified
         //       This seems like a massive security issue.....buuuuuuut
