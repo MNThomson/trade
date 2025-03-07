@@ -42,6 +42,7 @@ jobs:
       - uses: taiki-e/install-action@v2.47.0
         with:
           tool: cargo-nextest@0.9.87
+      - run: docker compose up db -d --wait
       - run: cargo nextest run --workspace
 
   build:

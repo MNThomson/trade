@@ -4,6 +4,7 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_users_user_name ON users(user_name);
 
 CREATE TABLE stocks (
     stock_id BIGSERIAL PRIMARY KEY,
@@ -22,6 +23,8 @@ CREATE TABLE orders (
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (stock_id) REFERENCES stocks(stock_id)
 );
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_orders_stock_id ON orders(stock_id);
 
 CREATE TABLE trades (
     trade_id BIGSERIAL PRIMARY KEY,
@@ -32,6 +35,8 @@ CREATE TABLE trades (
     FOREIGN KEY (sell_order) REFERENCES orders(order_id),
     FOREIGN KEY (buy_order) REFERENCES orders(order_id)
 );
+CREATE INDEX idx_sell_order ON trades(sell_order);
+CREATE INDEX idx_buy_order ON trades(buy_order);
 
 CREATE TABLE deposits (
     deposit_id BIGSERIAL PRIMARY KEY,
@@ -40,6 +45,7 @@ CREATE TABLE deposits (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+CREATE INDEX idx_deposits_user_id ON deposits(user_id);
 
 INSERT INTO users (user_name, password) VALUES
 ('admin', '$argon2id$v=19$m=1024,t=1,p=1$HAZcjX8wBnPhvVhYBpXO5g$H009UoKExbLzSHbl5Ru6WEQ4djyRi5sU8fkfCwk8ulI');
