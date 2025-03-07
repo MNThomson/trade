@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE orders SET order_status = $1 WHERE order_id = $2 AND limit_price IS NOT NULL AND order_status > 0 RETURNING order_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9e21df5472dff2b43077c58c606a055c94969e7e6e00a6eb687ffcc165a109fd"
+}

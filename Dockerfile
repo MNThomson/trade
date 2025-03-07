@@ -1,3 +1,8 @@
+FROM postgres:latest AS postgres
+COPY src/init.sql /docker-entrypoint-initdb.d/
+
+################################################
+
 FROM clux/muslrust:amd64-1.87.0-nightly-2025-02-20 AS chef
 RUN cargo install cargo-chef
 
@@ -20,6 +25,6 @@ COPY --from=cacher /root/.cargo /root/.cargo
 RUN cargo build --release --target x86_64-unknown-linux-musl
 
 
-FROM gcr.io/distroless/static:nonroot
+FROM gcr.io/distroless/static:nonroot AS trade
 COPY --from=builder --chown=nonroot:nonroot /volume/target/x86_64-unknown-linux-musl/release/trade /app/trade
 ENTRYPOINT ["/app/trade"]

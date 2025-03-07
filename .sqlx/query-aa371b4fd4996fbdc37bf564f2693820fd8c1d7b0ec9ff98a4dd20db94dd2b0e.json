@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT s.stock_id, s.stock_name,\n                SUM(CASE\n                    WHEN o.order_status = $1 AND t.buy_order = o.order_id THEN t.amount -- All buy orders that haven't failed are complete\n                    WHEN o.limit_price IS NOT NULL THEN CASE\n                        WHEN o.order_status IN ($2, $3, $4) THEN -o.amount\n                        WHEN t.sell_order = o.order_id THEN -t.amount\n                        ELSE 0 END\n                    ELSE 0 END\n                ) AS \"quantity_owned!\"\n            FROM stocks s\n            LEFT JOIN orders o ON s.stock_id = o.stock_id\n            LEFT JOIN trades t ON o.order_id = t.buy_order OR o.order_id = t.sell_order\n            WHERE o.user_id =$5\n            GROUP BY s.stock_id, s.stock_name;\n           ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stock_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "stock_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "quantity_owned!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "aa371b4fd4996fbdc37bf564f2693820fd8c1d7b0ec9ff98a4dd20db94dd2b0e"
+}

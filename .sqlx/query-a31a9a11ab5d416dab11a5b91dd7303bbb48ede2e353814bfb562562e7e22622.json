@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO trades (sell_order, buy_order, amount, created_at) VALUES ($1, $2, $3, '0001-01-01 00:00:00')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a31a9a11ab5d416dab11a5b91dd7303bbb48ede2e353814bfb562562e7e22622"
+}

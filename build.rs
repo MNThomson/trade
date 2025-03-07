@@ -1,6 +1,5 @@
-use std::{fs, path::Path, process::Command};
+use std::process::Command;
 
-use rusqlite::Connection;
 use rustc_version::version;
 
 fn main() {
@@ -21,18 +20,5 @@ fn main() {
     {
         let ver = version().unwrap().to_string();
         println!("cargo:rustc-env=RUSTC_VERSION={}", ver);
-    }
-
-    // Setup DB to sqlx
-    {
-        let db_path = Path::new("./target/build.db").to_string_lossy().to_string();
-        let _ = fs::remove_file(&db_path);
-
-        let conn = Connection::open(&db_path).expect("Failed to open database");
-
-        let sql = fs::read_to_string("./src/init.sql").expect("Failed to read init.sql");
-        conn.execute_batch(&sql).expect("Failed to execute SQL");
-
-        println!("cargo:rustc-env=DATABASE_URL=sqlite://target/build.db");
     }
 }

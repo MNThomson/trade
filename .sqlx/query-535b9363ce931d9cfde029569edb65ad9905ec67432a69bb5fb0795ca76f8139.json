@@ -1,0 +1,43 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT order_id, amount, limit_price, user_id\n            FROM orders\n            WHERE stock_id = $1 AND order_status IN ($2, $3) AND user_id != $4\n            ORDER BY limit_price ASC, created_at ASC\n            LIMIT 1\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "limit_price",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "535b9363ce931d9cfde029569edb65ad9905ec67432a69bb5fb0795ca76f8139"
+}

@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT t.trade_id AS wallet_tx_id, (t.amount * os.limit_price) AS \"amount!\", os.user_id AS seller_id, t.created_at AS time_stamp, CASE WHEN ob.user_id = $1 THEN ob.order_id ELSE os.order_id END AS \"stock_tx_id!\"\n            FROM trades t\n            LEFT JOIN orders os ON os.order_id = t.sell_order\n            LEFT JOIN orders ob ON ob.order_id = t.buy_order\n            WHERE (os.user_id = $2 OR ob.user_id = $3) AND os.created_at != '0001-01-01 00:00:00' AND ob.created_at != '0001-01-01 00:00:00'\n            ORDER BY t.created_at\n           ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "wallet_tx_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "amount!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "seller_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "time_stamp",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 4,
+        "name": "stock_tx_id!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "52bb71dba3ed3b4f145929b911a162e40780ff3811034ab1636c3cebcb88df9d"
+}

@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT s.stock_id AS \"stock_id!\", s.stock_name AS \"stock_name!\", MIN(o.limit_price) AS price\n            FROM stocks s\n            JOIN orders o ON s.stock_id = o.stock_id\n            WHERE o.limit_price IS NOT NULL AND o.order_status IN ($1, $2)\n            GROUP BY s.stock_id, s.stock_name\n            ORDER BY s.stock_name DESC\n           ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "stock_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "stock_name!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "price",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "42901c8aed587b4bebbc18b32be089e55c694e1071449a4004a469a417c92dc8"
+}

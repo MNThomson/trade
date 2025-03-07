@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE orders\n            SET order_status = CASE WHEN amount = $1 THEN $2::bigint ELSE $3 END\n            WHERE order_id = $4\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6ea35e7bb452ca8524e82f4bc99f8346ee1bd8830d728a7ec668c5d83d00b30"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO trades (sell_order, buy_order, amount) VALUES ($1, $2, $3)\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aced935351feadf9a67b60a2851bc4c0e2774ccc6e3648e0a97f67df9ec03d89"
+}

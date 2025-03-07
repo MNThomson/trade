@@ -52,7 +52,7 @@ pub fn tracing_init(service_name: &str, service_version: &str) {
                     .with_batch_config(
                         BatchConfig::default()
                             .with_max_queue_size(QUEUE_SIZE)
-                            .with_max_concurrent_exports(2)
+                            .with_max_concurrent_exports(10)
                             .with_max_export_timeout(Duration::from_secs(5)),
                     )
                     .with_trace_config(sdktrace::config().with_resource(Resource::new(vec![

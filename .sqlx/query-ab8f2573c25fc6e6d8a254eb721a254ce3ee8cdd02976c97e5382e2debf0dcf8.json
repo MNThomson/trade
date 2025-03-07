@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO orders (user_id, stock_id, amount, order_status) VALUES ($1, $2, $3, $4) RETURNING order_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ab8f2573c25fc6e6d8a254eb721a254ce3ee8cdd02976c97e5382e2debf0dcf8"
+}

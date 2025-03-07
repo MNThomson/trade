@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH TotalDeposits AS (\n                SELECT COALESCE(SUM(d.amount), 0) AS deposits_total\n                FROM deposits d\n                WHERE d.user_id = $1\n            ),\n            TotalTrades AS (\n                SELECT COALESCE(SUM(CASE\n                    WHEN os.user_id = $2 THEN t.amount * os.limit_price\n                    WHEN ob.user_id = $3 THEN -t.amount * os.limit_price\n                    ELSE 0 END\n                ), 0) AS trades_total\n                FROM trades t\n                LEFT JOIN orders os ON os.order_id = t.sell_order\n                LEFT JOIN orders ob ON ob.order_id = t.buy_order\n                WHERE (os.user_id = $4 OR ob.user_id = $5)\n            )\n            SELECT (deposits_total + trades_total) AS \"balance!\" FROM TotalDeposits, TotalTrades;\n           ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "balance!",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ab7f6de66a7a43a5760fde58775ddd96f0a808728d37d8fb3f717fe5ae7940bb"
+}

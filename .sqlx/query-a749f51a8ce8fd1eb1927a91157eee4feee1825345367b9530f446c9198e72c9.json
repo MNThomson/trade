@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO orders (user_id, stock_id, amount, limit_price, order_status, created_at) VALUES (1, $1, $2, 0, $3, '0001-01-01 00:00:00'), ($4, $5, $6, NULL, $7, '0001-01-01 00:00:00') RETURNING order_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "order_id",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a749f51a8ce8fd1eb1927a91157eee4feee1825345367b9530f446c9198e72c9"
+}

@@ -1,6 +1,17 @@
 services:
   trade:
-    build: .
-    ports:
-      - "3000:3000"
+    build: {target: trade}
+    depends_on: [db]
+    ports: ["3000:3000"]
     restart: unless-stopped
+    environment:
+      DB_ENDPOINT: postgresql://user:password@db:5432/trade
+
+  db:
+    build: {target: postgres}
+    ports: ["5432:5432"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: trade
