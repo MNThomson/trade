@@ -19,6 +19,7 @@ RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path r
 
 FROM chef AS builder
 COPY Cargo.* build.rs rust-toolchain.toml .
+COPY .sqlx/ .sqlx/
 COPY src/ src/
 COPY --from=cacher /volume/target target
 COPY --from=cacher /root/.cargo /root/.cargo

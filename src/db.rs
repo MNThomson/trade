@@ -23,7 +23,7 @@ impl DB {
             pool: PgPoolOptions::new()
                 .max_connections(50)
                 .acquire_timeout(Duration::from_secs(3))
-                .connect("postgresql://user:password@localhost:5432/trade")
+                .connect(std::env::var("DB_ENDPOINT").unwrap().as_str())
                 .await
                 .unwrap(),
         };
