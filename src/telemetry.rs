@@ -9,28 +9,20 @@ use opentelemetry_sdk::{
     Resource, runtime,
     trace::{self as sdktrace, BatchConfig},
 };
-use tonic::metadata::MetadataMap;
 use tower_http::{
     classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier},
     trace::{MakeSpan, OnBodyChunk, OnEos, OnFailure, OnRequest, OnResponse, TraceLayer},
 };
-use tracing::{Span, debug, field::Empty, warn};
+use tracing::{Span, debug, field::Empty};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const QUEUE_SIZE: usize = 65_536;
 
 pub fn tracing_init(service_name: &str, service_version: &str) {
-    let mut exporter = opentelemetry_otlp::new_exporter()
+    let exporter = opentelemetry_otlp::new_exporter()
         .tonic()
-        .with_timeout(Duration::from_hours(24));
-
-    if let Ok(apikey) = env::var("HONEYCOMB_APIKEY") {
-        let mut headers = MetadataMap::new();
-        headers.insert("x-honeycomb-team", apikey.parse().unwrap());
-        exporter = exporter
-            .with_endpoint("https://api.honeycomb.io:443")
-            .with_metadata(headers);
-    }
+        .with_endpoint("http://collector:4317")
+        .with_timeout(Duration::from_secs(3));
 
     tracing_subscriber::registry()
         .with(
@@ -93,13 +85,6 @@ pub fn tracing_init(service_name: &str, service_version: &str) {
             ),
         )
         .init();
-
-    if env::var("HONEYCOMB_APIKEY")
-        .unwrap_or(String::from(""))
-        .is_empty()
-    {
-        warn!("HONEYCOMB_APIKEY not set. Exporting to localhost");
-    }
 }
 
 pub fn otel_tracing() -> TraceLayer<

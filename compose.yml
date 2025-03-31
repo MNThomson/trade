@@ -1,7 +1,7 @@
 services:
   trade:
     build: {target: trade}
-    depends_on: [db]
+    depends_on: [db, collector]
     ports: ["3000:3000"]
     restart: unless-stopped
     environment:
@@ -15,3 +15,7 @@ services:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: trade
+
+  collector:
+    build: {target: collector}
+    restart: unless-stopped

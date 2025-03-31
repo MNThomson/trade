@@ -1,0 +1,42 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  batch:
+  tail_sampling:
+    decision_wait: 90s
+    num_traces: 100_000
+    expected_new_traces_per_sec: 5_000
+    policies: [{
+      name: probabilistic sampler,
+      type: probabilistic,
+      probabilistic: {sampling_percentage: 5}
+    }]
+
+
+exporters:
+  otlp/honeycomb:
+    endpoint: http://api.honeycomb.io:443
+    headers:
+      "x-honeycomb-team": ""
+  debug:
+    verbosity: basic #detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling,batch]
+      exporters: [debug] #,otlp/honeycomb]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug] #,otlp/honeycomb]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug] #,otlp/honeycomb]
+

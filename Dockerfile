@@ -1,8 +1,13 @@
 FROM postgres:latest AS postgres
 COPY src/init.sql /docker-entrypoint-initdb.d/
 
-################################################
 
+################################################
+FROM otel/opentelemetry-collector-contrib:0.104.0 AS collector
+COPY config.yaml /etc/otelcol-contrib/config.yaml
+
+
+################################################
 FROM clux/muslrust:amd64-1.87.0-nightly-2025-02-20 AS chef
 RUN cargo install cargo-chef
 
