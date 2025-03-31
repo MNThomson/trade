@@ -21,8 +21,8 @@ impl DB {
     pub async fn init() -> Result<Self, ()> {
         let db = DB {
             pool: PgPoolOptions::new()
-                .max_connections(50)
-                .acquire_timeout(Duration::from_secs(3))
+                .max_connections(10)
+                .acquire_timeout(Duration::from_secs(90))
                 .connect(std::env::var("DB_ENDPOINT").unwrap().as_str())
                 .await
                 .unwrap(),

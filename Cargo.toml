@@ -47,7 +47,6 @@ pretty_assertions = "1.4.1"
 tower = { version = "0.4", features = ["util"] }
 
 [build-dependencies]
-rusqlite.version = "0.32.1"
 rustc_version.version = "0.4"
 
 [profile.release]
